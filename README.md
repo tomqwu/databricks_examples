@@ -1,5 +1,20 @@
 # databricks_examples
 
+1. Establish Strict Data Contracts Upfront
+Many of our roadblocks stemmed from unexpected changes in the source systems (e.g., missing columns like DocumentType or string types where decimals were expected).
+
+The Fix: The specification must act as a binding data contract. Before any engineering begins, the upstream data owners must validate the exact schemas, column names, and data types that the pipeline will consume. If the source changes, the contract flags it before it breaks the build.
+
+2. Define Data Governance and Edge-Case Routing
+We spent significant cycles untangling "dirty" data—like the word "Yes" sitting in a numeric ID column, or unconfirmed rows crashing the mappings.
+
+The Fix: Specs need a dedicated section for data quality handling. Instead of assuming the data is clean, the requirements should define the default behavior for anomalies. You need explicit rules for: What is the default routing if a field is blank? Do we drop, quarantine, or flag records that fail validation?
+
+3. Translate Policy into Deterministic Logic
+Complex business rules (like the list of 29 EBA category codes, or the strict exception that rule 793 only applies to AU 101016) surfaced iteratively.
+
+The Fix: Move away from paragraph-based business rules. Specs should translate policy directly into deterministic logic matrices (e.g., decision trees or IF/THEN/ELSE tables). This removes all interpretation for the engineers and ensures the code perfectly mirrors the compliance policy on day one.
+
 This repository contains Databricks notebooks for ABAC-related metrics. The notebooks are grouped by metric family under `abac/`:
 
 - `00_CC_Mapping_Setup.ipynb`: builds the shared Cost Center to AU bootstrap view.
