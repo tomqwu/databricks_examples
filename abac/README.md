@@ -118,22 +118,49 @@ Debug cells are for traceability. They should make record routing explainable.
 
 Required behavior for debug outputs where practical:
 
-- show normalized Cost Center or equivalent bridge key
-- show mapped AU and bridged master AU
-- show key rule-check columns
+- the primary debug table should be AU-level, with one row per master AU
+- `AU_ID` / `BusinessID` is the unique review key
+- show the bridge key list used to calculate the result:
+  - CC-driven metrics: normalized Cost Center list
+  - `DeptID`-driven metrics: normalized department list
+  - TP metrics: mapped `TPRM_Units` / `Assessable_Unit_ID` bridge lists
+- show mapped AU and bridged master AU where applicable
+- show the calculation columns behind the response
 - show positive outcomes, not only dropped outcomes
-- show explicit explanation columns such as `Why_Yes`, `Why_No`, or `Debug_Reason`
-- place key identifiers to the left of the output:
-  - Cost Center
-  - mapped AU ID / name
-  - bridged master AU ID / name
+- show explicit explanation columns such as `Why_Yes`, `Why_No`, `Calculation_Formula`, or `Debug_Reason`
+- place key identifiers to the left of the output
 
-Debug outputs may be:
+Primary AU-level debug tables should include these common columns where applicable:
 
-- AU-level summaries
-- row-level traceability tables
+- `BusinessID`
+- `AU_Name`
+- `Business_Segment`
+- `QuestionID`
+- `Response`
+- bridge-key list column
+- calculation detail columns
+- explanation column
+- `In_ABAC_AU_List`
 
-Final metric output must always be master-anchored even if the debug cell is row-level.
+Response-type specific requirements:
+
+- yes/no metrics:
+  - `Why_Yes`
+  - `Why_No`
+  - qualifying row or engagement counts
+- count metrics:
+  - included row count
+  - mapped row count
+  - explanation of why the count is zero or non-zero
+- percentage metrics:
+  - `Numerator`
+  - `Denominator`
+  - `Calculated_Percentage`
+  - `Calculation_Formula`
+
+Row-level traceability tables may still exist as secondary debug cells when AU-level summary alone is insufficient.
+
+Final metric output must always be master-anchored even if a secondary debug cell is row-level.
 
 ## 5. EBA Requirements
 
