@@ -158,6 +158,11 @@ Response-type specific requirements:
   - `Calculated_Percentage`
   - `Calculation_Formula`
 
+Binary percentage convention:
+
+- when a metric was previously yes/no but is now percentage-based, use `100%` for a qualifying outcome and `0%` otherwise
+- binary percentage debug should show `Numerator = 1 or 0` and `Denominator = 1`
+
 Row-level traceability tables may still exist as secondary debug cells when AU-level summary alone is insufficient.
 
 Final metric output must always be master-anchored even if a secondary debug cell is row-level.
@@ -201,38 +206,38 @@ Required behavior:
 #### EBA01
 
 - combines Coupa and Finance signals
-- final response type: yes/no
+- final response type: percentage
 - debug traces parsed Cost Center, mapped AU, category, and 793 handling
 
 #### EBA02
 
 - Coupa-driven
-- final response type: yes/no
+- final response type: percentage
 - `PublicOfficial` rule: must be `Y` or `YES`
 - final output must return all master AUs
-- debug is master-anchored at AU level and must explain both yes and no outcomes
+- debug is master-anchored at AU level and must explain both 100% and 0% outcomes
 
 #### EBA04
 
 - Coupa-driven
-- final response type: count
+- final response type: percentage
 - `PublicOfficial` rule: must be `N` or `NO`
 - amount rule: parse amount-like tokens from `Total`, normalize locale variants, and use the maximum parsed amount
 - threshold rule: `Numeric_Total > 250`
 - mixed currency labels do not control inclusion; if any parsed amount exceeds `250`, the row qualifies
-- debug must expose parse-stage failures, amount parsing, mapping outcome, and final yes/no decision per row
+- debug must expose parse-stage failures, amount parsing, mapping outcome, and final percentage decision per row
 
 #### EBA06
 
 - Finance-driven
-- final response type: count
+- final response type: percentage
 - Cost Center-driven AU mapping must use the shared canonical Cost Center rule
 
 #### EBA07
 
 - Finance-driven
-- final response type: yes/no
-- final output must return all master AUs and default missing AUs to `No`
+- final response type: percentage
+- final output must return all master AUs and default missing AUs to `0%`
 
 ## 6. EMP Requirements
 
