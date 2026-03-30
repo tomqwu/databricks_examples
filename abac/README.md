@@ -158,11 +158,6 @@ Response-type specific requirements:
   - `Calculated_Percentage`
   - `Calculation_Formula`
 
-Binary percentage convention:
-
-- when a metric was previously yes/no but is now percentage-based, use `100%` for a qualifying outcome and `0%` otherwise
-- binary percentage debug should show `Numerator = 1 or 0` and `Denominator = 1`
-
 Row-level traceability tables may still exist as secondary debug cells when AU-level summary alone is insufficient.
 
 Final metric output must always be master-anchored even if a secondary debug cell is row-level.
@@ -185,6 +180,14 @@ Where AU is Cost Center-driven:
 - normalize the source Cost Center with the canonical rule
 - normalize mapping Cost Center with the same rule
 - bridge through `vw_cost_center_mapping_bootstrap`
+
+For percentage-based EBA metrics:
+
+- numerator is the finding count for the AU after notebook-specific business rules are applied
+- denominator is the distinct mapped employee count for the AU from `hive_metastore.ra_adido_2025.fy25_mltf_sanctions_and_abac_11282025_all_employees`
+- employee denominator uses normalized `DeptID` bridged through `vw_cost_center_mapping_bootstrap`
+- if denominator = 0, response must default to `0%`
+- because numerator is finding count, the percentage may exceed `100%` if findings are greater than mapped employees
 
 ### 5.2 Shared EBA Category Rule
 
