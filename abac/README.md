@@ -184,10 +184,10 @@ Where AU is Cost Center-driven:
 For percentage-based EBA metrics:
 
 - numerator is the finding count for the AU after notebook-specific business rules are applied
-- denominator is the distinct mapped employee count for the AU from `hive_metastore.ra_adido_2025.fy25_mltf_sanctions_and_abac_11282025_all_employees`
-- employee denominator uses normalized `DeptID` bridged through `vw_cost_center_mapping_bootstrap`
+- denominator is the AU's total mapped source record count for that notebook before the final finding filter is applied
+- denominator must be derived from the same source pipeline and AU bridge used by the notebook
 - if denominator = 0, response must default to `0%`
-- because numerator is finding count, the percentage may exceed `100%` if findings are greater than mapped employees
+- percentage must therefore stay within the AU's mapped record population
 
 ### 5.2 Shared EBA Category Rule
 
