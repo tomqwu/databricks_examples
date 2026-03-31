@@ -266,6 +266,9 @@ EMP metrics using Cost Center or department-based AU attribution must normalize 
 
 - contingent worker logic
 - Cost Center normalization and AU bridging follow the shared Cost Center contract
+- final response type: percentage
+- numerator is high-risk contingent worker records mapped to the AU
+- denominator is total mapped contingent worker records for the AU
 
 ## 7. GEO Requirements
 
