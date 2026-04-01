@@ -1,0 +1,34 @@
+Taxonomy File,Taxonomy Field,Secondary Field,Field Type,Allowable Values (IDs),Mapped Spec Field Path,Examples,Recommendation Notes
+org_structure.yaml,segments,id,Lookup (structured),cbb|cpb|fcrm|insurance|platforms_technology|te_ce|wealth,scope.segment_id,"scope:
+  segment_id: cpb","Use stable segment IDs in specs. Labels remain reference text for humans."
+org_structure.yaml,assessment_units,id,Lookup (structured),301069|301451|301479|301485|301486|301487|301488|301570|700005|700128|301064|301087|301270|301273|301274|301275|301365|301366|301368|301475|301476|301478|301571|700179|700180|700181|700342|501516|501525|700025|700065|700089|700090|700182|700206|101522|101523|101524|301367|700086|700097|700099|700183|700207|700208|501012|501014|700113|700117|101011|101013|101014|101015|101016|101019|101020|101021|101051|700061|700115|700125,au_applicability.included_aus[] / au_applicability.excluded_aus[],"au_applicability:
+  strategy: explicit_exclusion
+  excluded_aus:
+    - 301273
+    - 101020","Use AU numeric IDs from the master 61-AU list. This is the preferred lookup for inclusion and exclusion rules."
+rs_scoping.yaml,assessment_period,id,Lookup,fy25_annual,assessment_context.assessment_period_id,"assessment_context:
+  assessment_period_id: fy25_annual","Recommended when specs need to declare the governing assessment cycle explicitly."
+rs_scoping.yaml,time_windows,id,Lookup (structured),assessment_period_cumulative|end_of_period_snapshot,calculation.time_window,"calculation:
+  time_window: assessment_period_cumulative","Keep time windows centralized here so metric specs do not invent their own temporal logic."
+rs_scoping.yaml,work_packages,id,Lookup (structured),wp_01|wp_02|wp_03|wp_04,metric_definition.work_package,"metric_definition:
+  work_package: wp_01","Recommended canonical field for routing a metric to the correct work package."
+rs_scoping.yaml,applicability_strategies,id,Lookup (structured),global_inclusion|explicit_exclusion|explicit_inclusion,au_applicability.strategy,"au_applicability:
+  strategy: explicit_inclusion
+  included_aus:
+    - 301069
+    - 301451","Pair this field with included or excluded AU lists depending on the selected strategy."
+rs_scoping.yaml,population_boundaries,id,Lookup (structured),full_au_population|centralized_crr_only|decentralized_crr_only,au_applicability.population_boundary,"au_applicability:
+  population_boundary: centralized_crr_only","Use this to standardize what customer or account population a metric is measured over."
+ra_metric_taxonomy.yaml,risk_domains,id,Lookup (structured),aml_ir|sanctions_ir|abac_ir,metric_definition.risk_domains[],"metric_definition:
+  risk_domains:
+    - aml_ir
+    - sanctions_ir","Store domains as a list because one metric can support more than one risk lens."
+ra_metric_taxonomy.yaml,risk_categories,id,Lookup (structured),customer_risk|products_services_risk|transactional_risk|delivery_channel_risk|operational_geographic_risk|emerging_risk,metric_definition.risk_category,"metric_definition:
+  risk_category: customer_risk","Use the methodology taxonomy ID, not a free-text category label."
+ra_metric_taxonomy.yaml,metric_types,id,Lookup (structured),base_data_element|supplemental|control_metric,metric_definition.metric_type,"metric_definition:
+  metric_type: base_data_element","This field distinguishes core BDEs from supplemental and control-oriented metrics."
+ra_metric_taxonomy.yaml,data_source_categories,id,Lookup (structured),rahona|adido,data_source.category,"data_source:
+  category: rahona","Use the source category to describe ownership of the upstream data, not the exact table name."
+ra_metric_taxonomy.yaml,data_source_categories,systems,Lookup (conditional on category=rahona),CAEDW|CIF|S3S|MBNA|WCA|WCDA|ODR|BBCMN,data_source.system,"data_source:
+  category: rahona
+  system: CAEDW","Only use these system values when the source category is `rahona`."
