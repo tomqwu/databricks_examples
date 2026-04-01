@@ -1,5 +1,11 @@
 version: 1.0.0
+# This file is the master inventory of assessable units available to the
+# enterprise metric payload. Treat AU IDs as stable business keys: labels may
+# evolve over time, but IDs should never be repurposed for a different unit.
 metadata:
+  # Metadata gives maintainers the governing source for this list. Update the
+  # reference when the authoritative AU inventory changes, not for formatting
+  # or comment-only edits.
   name: Organization Structure
   owner: FCRM Spec Library
   document_reference: "Master AU List - 61 AUs"
@@ -7,6 +13,9 @@ metadata:
 # ===========================================================================
 # 1. BUSINESS SEGMENTS
 # ===========================================================================
+# Segments are the top-level grouping used to organize AUs for reporting,
+# navigation, and governance reviews. Segment IDs should stay concise and
+# stable because downstream specs reference them indirectly via `segment_id`.
 segments:
   - id: cbb
     label: Canadian Business Banking
@@ -26,6 +35,11 @@ segments:
 # ===========================================================================
 # 2. ASSESSABLE UNITS (All 61 Master Execution IDs)
 # ===========================================================================
+# Each entry below represents one assessable unit that metric specs may include
+# or exclude. Keep one row per AU, preserve the numeric `id`, and ensure every
+# `segment_id` maps to a segment declared above. If an AU is renamed, update the
+# label only; avoid deleting historical IDs unless the enterprise model itself
+# has formally retired them and all dependent specs have been reviewed.
 assessment_units:
   # --- CANADIAN BUSINESS BANKING (10) ---
   - id: 301069

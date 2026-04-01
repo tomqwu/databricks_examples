@@ -1,5 +1,12 @@
 version: 1.0.0
+# This file defines cross-cutting scoping rules for the FY25 assessment cycle.
+# Keep it free of metric-specific business logic so individual metric specs can
+# reference one shared source of truth for assessment windows and AU inclusion
+# semantics.
 metadata:
+  # Metadata is documentation for maintainers and consumers of the taxonomy.
+  # `document_reference` should point to the methodology or scope artifact that
+  # authorized the current structure, not to a downstream implementation note.
   name: FY25 Risk Assessment Scoping Boundaries
   owner: FCRM Enterprise Risk Assessment Reporting Team
   document_reference: "Scope State Document"
@@ -7,10 +14,17 @@ metadata:
 # ===========================================================================
 # 1. ASSESSMENT EXECUTION WINDOWS
 # ===========================================================================
+# This section captures the official assessment cycle and the approved time
+# windows that metric specs may reference. Keeping windows centralized avoids
+# each metric defining its own date semantics, which would create inconsistent
+# SQL logic and reporting outputs across work packages.
 assessment_period:
   id: fy25_annual
   label: "FY25 Annual Risk Assessment"
 
+# `time_windows` are reusable temporal interpretations for metrics.
+# Add a new window only when the methodology introduces a genuinely new
+# measurement pattern, not when one metric has a one-off exception.
 time_windows:
   - id: assessment_period_cumulative
     label: "Cumulative count/value over the full FY25 Assessment Period"
@@ -20,6 +34,9 @@ time_windows:
 # ===========================================================================
 # 2. WORK PACKAGES (The Execution Containers)
 # ===========================================================================
+# Work package IDs are canonical routing keys used by the spec library to group
+# related metrics. These identifiers should remain stable because folder paths,
+# validation rules, and presentation layers may depend on them.
 work_packages:
   - id: wp_01
     label: "Inherent Risk BDEs"
@@ -33,14 +50,27 @@ work_packages:
 # ===========================================================================
 # 3. APPLICABILITY & POPULATION BOUNDARIES
 # ===========================================================================
+# This section standardizes how specs declare where a metric applies and what
+# population it is measured against. The goal is to keep AU coverage rules
+# explicit and machine-readable instead of relying on narrative notes inside
+# individual metric definitions.
 applicability_strategies:
+  # `global_inclusion` is the default-style strategy when a metric applies
+  # broadly across the enterprise AU inventory.
   - id: global_inclusion
     label: "Applies to all Assessable Units in org_structure.yaml"
+  # `explicit_exclusion` is preferred when the metric is broadly applicable and
+  # only a small number of AUs are out of scope; this keeps specs compact.
   - id: explicit_exclusion
     label: "Applies to all AUs EXCEPT the specified 'excluded_aus' list"
+  # `explicit_inclusion` is appropriate when applicability is narrow or when
+  # listing all in-scope AUs is easier to govern than tracking exclusions.
   - id: explicit_inclusion
     label: "Applies ONLY to the explicitly listed AUs"
 
+# Population boundaries define which customer/account universe is valid for a
+# metric after AU scoping is applied. Downstream logic can use these IDs to
+# drive filters without hardcoding business prose into SQL generation.
 population_boundaries:
   - id: full_au_population
     label: "All customers/accounts within the Assessable Unit"

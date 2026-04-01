@@ -1,5 +1,11 @@
 version: 1.0.0
+# This taxonomy defines the controlled vocabulary used by metric specs. The IDs
+# in this file are intended to be referenced directly from YAML payloads, so new
+# values should be added deliberately and existing IDs should not be renamed.
 metadata:
+  # `document_reference` should identify the methodology artifacts that justify
+  # these categories. It is not meant to point to implementation tickets or
+  # local working notes.
   name: FCRM Risk Assessment Metric Taxonomy
   owner: FCRM Spec Library Platform Team
   document_reference: "FY25 Methodology Deck (Slide 7) & Scope State Document"
@@ -7,6 +13,10 @@ metadata:
 # ===========================================================================
 # 1. RISK DOMAINS (From RA Excel Mappings)
 # ===========================================================================
+# Risk domains are the highest-level classification for a metric. A metric may
+# belong to more than one domain when the same underlying data point informs
+# multiple assessments, so specs should store domains as a list rather than a
+# single value.
 risk_domains:
   - id: aml_ir
     label: "AML Inherent Risk"
@@ -18,6 +28,10 @@ risk_domains:
 # ===========================================================================
 # 2. RISK CATEGORIES (From Methodology Deck)
 # ===========================================================================
+# Risk categories provide the methodology-aligned buckets used to organize
+# metrics within a domain. `factor_count` is a governance aid showing how many
+# factors the methodology expects in each category; it is not itself a scoring
+# rule and should not be treated as executable business logic.
 risk_categories:
   - id: customer_risk
     label: "Customer Risk"
@@ -41,6 +55,9 @@ risk_categories:
 # ===========================================================================
 # 3. METRIC CLASSIFICATIONS
 # ===========================================================================
+# Metric types describe what kind of specification is being authored so tooling
+# and reviewers can distinguish core BDEs from contextual or control-oriented
+# metrics. Prefer these controlled values over introducing local synonyms.
 metric_types:
   - id: base_data_element
     label: "Base Data Element (BDE)"
@@ -55,6 +72,9 @@ metric_types:
 # ===========================================================================
 # 4. DATA SOURCE CATEGORIES (From Scope State Document, Section 4)
 # ===========================================================================
+# Data source categories capture the ownership pattern of the upstream data, not
+# a specific table or file path. Specs can use these IDs to communicate whether
+# a metric comes from enterprise-governed platforms or business-managed inputs.
 data_source_categories:
   - id: rahona
     label: "Rahona Data Platform"
