@@ -1,34 +1,79 @@
-Taxonomy File,Taxonomy Field,Secondary Field,Field Type,Allowable Values,Mapped Spec Field Path,Field Always Inherits Value from Parent,Field Guidance,Example,Comments
-org_structure.yaml,segments,id,Lookup (structured),cbb|cpb|fcrm|insurance|platforms_technology|te_ce|wealth,scope.segment_id,,"Use stable segment IDs in specs. Labels remain reference text for humans.","scope:
+Taxonomy File,Taxonomy Field,Secondary Field,Field Type,Allowable Values (original),Allowable Values (new),Mapped Spec Field Path,Field Always Inherits Value from Parent,Field Guidance,Example,Comments
+org_structure.yaml,segments,id,Lookup (structured),cbb|cpb|fcrm|insurance|platforms_technology|te_ce|wealth,,scope.segment_id,,Use stable segment IDs in specs. This is the machine value.,"scope:
   segment_id: cpb",
-org_structure.yaml,assessment_units,id,Lookup (structured),301069|301451|301479|301485|301486|301487|301488|301570|700005|700128|301064|301087|301270|301273|301274|301275|301365|301366|301368|301475|301476|301478|301571|700179|700180|700181|700342|501516|501525|700025|700065|700089|700090|700182|700206|101522|101523|101524|301367|700086|700097|700099|700183|700207|700208|501012|501014|700113|700117|101011|101013|101014|101015|101016|101019|101020|101021|101051|700061|700115|700125,au_applicability.included_aus[] / au_applicability.excluded_aus[],au_applicability.strategy=explicit_inclusion or explicit_exclusion,"Use AU numeric IDs from the master 61-AU list. This is the preferred lookup for inclusion and exclusion rules.","au_applicability:
+org_structure.yaml,segments,label,Lookup (display text),"Canadian Business Banking|Canadian Personal Banking|FCRM|Insurance|Platforms & Technology (excl. US)|Transformation, Enablement, & Customer Experience (excl. US)|Wealth (excl. US)",,generated from taxonomy lookup,segments.id,"If this CSV is used to generate YAML, keep labels explicit rather than inferring them from IDs.","segments:
+  - id: cpb
+    label: Canadian Personal Banking",
+org_structure.yaml,assessment_units,id,Lookup (structured),301069|301451|301479|301485|301486|301487|301488|301570|700005|700128|301064|301087|301270|301273|301274|301275|301365|301366|301368|301475|301476|301478|301571|700179|700180|700181|700342|501516|501525|700025|700065|700089|700090|700182|700206|101522|101523|101524|301367|700086|700097|700099|700183|700207|700208|501012|501014|700113|700117|101011|101013|101014|101015|101016|101019|101020|101021|101051|700061|700115|700125,,au_applicability.included_aus[] / au_applicability.excluded_aus[],au_applicability.strategy=explicit_inclusion or explicit_exclusion,Use AU numeric IDs from the master 61-AU list. This is the preferred lookup for inclusion and exclusion rules.,"au_applicability:
   strategy: explicit_exclusion
   excluded_aus:
     - 301273
     - 101020",
-rs_scoping.yaml,assessment_period,id,Lookup,fy25_annual,assessment_context.assessment_period_id,,"Use when a spec needs to declare the governing assessment cycle explicitly.","assessment_context:
+org_structure.yaml,assessment_units,label,Lookup (display text),"Merchant Solutions (Canada)|BB - Cash Management|Commercial Banking Centres (CBC)|Small Business Banking - Deposits/Term|Small Business Banking - Credit|Commercial Banking - Deposits/Term|Commercial Banking - Credit|Small Business Banking Distribution|TD Auto Finance (Canada)|Business Banking 1B Governance and Controls|Canadian Credit Cards including MBNA|TD Investment Services Inc.|Everyday Banking|Personal Lending|Real Estate Secured Lending (RESL)|Personal Savings and Investing|ATM Channel Canada|Canadian Branch Banking (Retail) /Branch Banking Delivery Excellence (BBDE)|Contact Center Canada|Mobile Mortgage Specialists (MMS)|Broker Services & Operations|Canadian Personal Banking Operations|Customer Assistance (Collections)|CPB Business Management and Governance|CPB Strategy & Enablement|NACO Strategy & Enablement|CPB Digital|FCRM Global Sanctions (Enterprise)|FCRM - Canada Business Oversight|Canadian Monitoring Coverage and Capabilities (CA MCC)|FCRM, Policy & Control Effectiveness, Canada|Financial Crime Investigation (FCI)|FCRM Governance and Regulatory Matters, Canada|Canada Know Your Customer (KYC) Program|FCRM Business Management Group Canada|TDI - General Insurance|TDI - Life and Health|TDI - Re-insurance Barbados|Canadian Personal Banking Technology|Protect Platforms - Financial Crimes Prevention & Operations (FCPO) - Canada|Corporate Platform - Wealth Management Platform|Canadian Business Banking Platform|Canadian Insurance Technology|Protect Platform - Technology and Cyber Security (AML Impacting)|Protect Platform - Technology and Cyber Security (NON-AML impacting)|Sustainability and Corporate Citizenship (S&CC)|Corporate and Public Affairs (CAPA)|Analytics, Insights & Artificial Intelligence (AI2)|Marketing Canada|TD Direct Investing CAN|TD Wealth Private Banking CAN|TD Wealth Private Investment Counsel CAN|TD Wealth Private Trust CAN|TD Asset Management|TD Wealth Financial Planning|TD Waterhouse Insurance Services Inc.|TD Wealth Private Investment Advice|Wealth National Office|GMI Servicing Inc.|Wealth Advisory Services|TDGIS Hong Kong",,generated from taxonomy lookup,assessment_units.id,Keep AU labels explicit if the CSV needs to recreate the taxonomy YAML rather than just validate spec values.,"assessment_units:
+  - id: 301069
+    label: Merchant Solutions (Canada)",
+org_structure.yaml,assessment_units,segment_id,Lookup (structured),cbb|cbb|cbb|cbb|cbb|cbb|cbb|cbb|cbb|cbb|cpb|cpb|cpb|cpb|cpb|cpb|cpb|cpb|cpb|cpb|cpb|cpb|cpb|cpb|cpb|cpb|cpb|fcrm|fcrm|fcrm|fcrm|fcrm|fcrm|fcrm|fcrm|insurance|insurance|insurance|platforms_technology|platforms_technology|platforms_technology|platforms_technology|platforms_technology|platforms_technology|platforms_technology|te_ce|te_ce|te_ce|te_ce|wealth|wealth|wealth|wealth|wealth|wealth|wealth|wealth|wealth|wealth|wealth|wealth,,generated from taxonomy lookup,assessment_units.id,This field is required to reconstruct org_structure.yaml accurately because each AU must map back to a segment.,"assessment_units:
+  - id: 301069
+    segment_id: cbb",
+rs_scoping.yaml,assessment_period,id,Lookup,fy25_annual,,assessment_context.assessment_period_id,,Use when a spec needs to declare the governing assessment cycle explicitly.,"assessment_context:
   assessment_period_id: fy25_annual",
-rs_scoping.yaml,time_windows,id,Lookup (structured),assessment_period_cumulative|end_of_period_snapshot,calculation.time_window,,"Keep time windows centralized here so metric specs do not invent their own temporal logic.","calculation:
+rs_scoping.yaml,assessment_period,label,Lookup (display text),FY25 Annual Risk Assessment,,generated from taxonomy lookup,assessment_period.id,"Include the label row if the CSV needs to regenerate the taxonomy YAML, not just reference the ID.","assessment_period:
+  id: fy25_annual
+  label: FY25 Annual Risk Assessment",
+rs_scoping.yaml,time_windows,id,Lookup (structured),assessment_period_cumulative|end_of_period_snapshot,,calculation.time_window,,Keep time windows centralized here so metric specs do not invent their own temporal logic.,"calculation:
   time_window: assessment_period_cumulative",
-rs_scoping.yaml,work_packages,id,Lookup (structured),wp_01|wp_02|wp_03|wp_04,metric_definition.work_package,,"Use this as the canonical work-package routing field for a metric.","metric_definition:
+rs_scoping.yaml,time_windows,label,Lookup (display text),Cumulative count/value over the full FY25 Assessment Period|Point-in-time snapshot at the end of the Assessment Period,,generated from taxonomy lookup,time_windows.id,Store the human-readable window labels explicitly if this sheet is expected to recreate taxonomy YAML.,"time_windows:
+  - id: assessment_period_cumulative
+    label: Cumulative count/value over the full FY25 Assessment Period",
+rs_scoping.yaml,work_packages,id,Lookup (structured),wp_01|wp_02|wp_03|wp_04,,metric_definition.work_package,,Use this as the canonical work-package routing field for a metric.,"metric_definition:
   work_package: wp_01",
-rs_scoping.yaml,applicability_strategies,id,Lookup (structured),global_inclusion|explicit_exclusion|explicit_inclusion,au_applicability.strategy,,"Pair this field with included or excluded AU lists depending on the selected strategy.","au_applicability:
+rs_scoping.yaml,work_packages,label,Lookup (display text),Inherent Risk BDEs|Inherent Risk Supplemental Metrics|Control Assessment Metrics|Anti-Bribery Anti-Corruption Metrics,,generated from taxonomy lookup,work_packages.id,Keep display labels explicit if the CSV is also acting as a source for taxonomy reconstruction.,"work_packages:
+  - id: wp_01
+    label: Inherent Risk BDEs",
+rs_scoping.yaml,applicability_strategies,id,Lookup (structured),global_inclusion|explicit_exclusion|explicit_inclusion,,au_applicability.strategy,,Pair this field with included or excluded AU lists depending on the selected strategy.,"au_applicability:
   strategy: explicit_inclusion
   included_aus:
     - 301069
     - 301451",
-rs_scoping.yaml,population_boundaries,id,Lookup (structured),full_au_population|centralized_crr_only|decentralized_crr_only,au_applicability.population_boundary,,"Use this to standardize what customer or account population a metric is measured over.","au_applicability:
+rs_scoping.yaml,applicability_strategies,label,Lookup (display text),Applies to all Assessable Units in org_structure.yaml|Applies to all AUs EXCEPT the specified 'excluded_aus' list|Applies ONLY to the explicitly listed AUs,,generated from taxonomy lookup,applicability_strategies.id,Keep the business-readable strategy descriptions explicit if round-tripping back to YAML matters.,"applicability_strategies:
+  - id: explicit_exclusion
+    label: Applies to all AUs EXCEPT the specified 'excluded_aus' list",
+rs_scoping.yaml,population_boundaries,id,Lookup (structured),full_au_population|centralized_crr_only|decentralized_crr_only,,au_applicability.population_boundary,,Use this to standardize what customer or account population a metric is measured over.,"au_applicability:
   population_boundary: centralized_crr_only",
-ra_metric_taxonomy.yaml,risk_domains,id,Lookup (structured),aml_ir|sanctions_ir|abac_ir,metric_definition.risk_domains[],,"Store domains as a list because one metric can support more than one risk lens.","metric_definition:
+rs_scoping.yaml,population_boundaries,label,Lookup (display text),All customers/accounts within the Assessable Unit|Only customers rated via centralized Oracle CRR model|Only customers rated via decentralized manual processes,,generated from taxonomy lookup,population_boundaries.id,Include these labels if the CSV needs to preserve business wording in the taxonomy YAML.,"population_boundaries:
+  - id: centralized_crr_only
+    label: Only customers rated via centralized Oracle CRR model",
+ra_metric_taxonomy.yaml,risk_domains,id,Lookup (structured),aml_ir|sanctions_ir|abac_ir,,metric_definition.risk_domains[],,Store domains as a list because one metric can support more than one risk lens.,"metric_definition:
   risk_domains:
     - aml_ir
     - sanctions_ir",
-ra_metric_taxonomy.yaml,risk_categories,id,Lookup (structured),customer_risk|products_services_risk|transactional_risk|delivery_channel_risk|operational_geographic_risk|emerging_risk,metric_definition.risk_category,,"Use the methodology taxonomy ID, not a free-text category label.","metric_definition:
+ra_metric_taxonomy.yaml,risk_domains,label,Lookup (display text),AML Inherent Risk|Sanctions Inherent Risk|ABAC Inherent Risk,,generated from taxonomy lookup,risk_domains.id,Keep these labels explicit if the taxonomy sheet is a source for YAML generation.,"risk_domains:
+  - id: aml_ir
+    label: AML Inherent Risk",
+ra_metric_taxonomy.yaml,risk_categories,id,Lookup (structured),customer_risk|products_services_risk|transactional_risk|delivery_channel_risk|operational_geographic_risk|emerging_risk,,metric_definition.risk_category,,"Use the methodology taxonomy ID, not a free-text category label.","metric_definition:
   risk_category: customer_risk",
-ra_metric_taxonomy.yaml,metric_types,id,Lookup (structured),base_data_element|supplemental|control_metric,metric_definition.metric_type,,"Use this field to distinguish BDEs from supplemental and control metrics.","metric_definition:
+ra_metric_taxonomy.yaml,risk_categories,label,Lookup (display text),Customer Risk|Products & Services Risk|Transactional Risk|Delivery Channel Risk|Operational Geographic Risk|Emerging Risk,,generated from taxonomy lookup,risk_categories.id,Keep category labels explicit if this workbook must recreate the taxonomy YAML.,"risk_categories:
+  - id: customer_risk
+    label: Customer Risk",
+ra_metric_taxonomy.yaml,risk_categories,factor_count,Lookup (numeric),11|2|8|2|3|5,,generated from taxonomy lookup,risk_categories.id,`factor_count` is part of the taxonomy YAML and should be preserved if the workbook is used as a reconstruction source.,"risk_categories:
+  - id: customer_risk
+    factor_count: 11",
+ra_metric_taxonomy.yaml,metric_types,id,Lookup (structured),base_data_element|supplemental|control_metric,,metric_definition.metric_type,,Use this field to distinguish BDEs from supplemental and control metrics.,"metric_definition:
   metric_type: base_data_element",
-ra_metric_taxonomy.yaml,data_source_categories,id,Lookup (structured),rahona|adido,data_source.category,,"Use the source category to describe ownership of the upstream data, not the exact table name.","data_source:
+ra_metric_taxonomy.yaml,metric_types,label,Lookup (display text),Base Data Element (BDE)|Supplemental Metric|Control Metric,,generated from taxonomy lookup,metric_types.id,Keep display labels explicit if this workbook is expected to regenerate the taxonomy YAML.,"metric_types:
+  - id: base_data_element
+    label: Base Data Element (BDE)",
+ra_metric_taxonomy.yaml,metric_types,description,Lookup (display text),"Core quantitative metric for inherent risk calculations|Contextual data points supporting inherent risk profiles|Metrics assessing KYC, Investigations, or Reporting effectiveness",,generated from taxonomy lookup,metric_types.id,"Descriptions are not spec lookup values, but they are part of the taxonomy YAML and should be preserved for round-trip generation.","metric_types:
+  - id: base_data_element
+    description: Core quantitative metric for inherent risk calculations",
+ra_metric_taxonomy.yaml,data_source_categories,id,Lookup (structured),rahona|adido,,data_source.category,,"Use the source category to describe ownership of the upstream data, not the exact table name.","data_source:
   category: rahona",
-ra_metric_taxonomy.yaml,data_source_categories,systems,Lookup (conditional),CAEDW|CIF|S3S|MBNA|WCA|WCDA|ODR|BBCMN,data_source.system,data_source.category=rahona,"Only use these system values when the selected source category is `rahona`.","data_source:
+ra_metric_taxonomy.yaml,data_source_categories,label,Lookup (display text),Rahona Data Platform|ADIDO Sources,,generated from taxonomy lookup,data_source_categories.id,Keep category labels explicit if the workbook must recreate the taxonomy YAML.,"data_source_categories:
+  - id: rahona
+    label: Rahona Data Platform",
+ra_metric_taxonomy.yaml,data_source_categories,systems,Lookup (conditional),CAEDW|CIF|S3S|MBNA|WCA|WCDA|ODR|BBCMN,,data_source.system,data_source.category=rahona,Only use these system values when the selected source category is `rahona`.,"data_source:
   category: rahona
   system: CAEDW",
+ra_metric_taxonomy.yaml,data_source_categories,description,Lookup (display text),Business-managed side-loaded files and vendor extracts,,generated from taxonomy lookup,data_source_categories.id=adido,Descriptions are part of the taxonomy YAML and should be preserved if the workbook is the source for regeneration.,"data_source_categories:
+  - id: adido
+    description: Business-managed side-loaded files and vendor extracts",
