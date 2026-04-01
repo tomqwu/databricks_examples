@@ -1,0 +1,225 @@
+version: 1.0.0
+metadata:
+  name: Organization Structure
+  owner: FCRM Spec Library
+  document_reference: "Master AU List - 61 AUs"
+
+# ===========================================================================
+# 1. BUSINESS SEGMENTS
+# ===========================================================================
+segments:
+  - id: cbb
+    label: Canadian Business Banking
+  - id: cpb
+    label: Canadian Personal Banking
+  - id: fcrm
+    label: FCRM
+  - id: insurance
+    label: Insurance
+  - id: platforms_technology
+    label: Platforms & Technology (excl. US)
+  - id: te_ce
+    label: Transformation, Enablement, & Customer Experience (excl. US)
+  - id: wealth
+    label: Wealth (excl. US)
+
+# ===========================================================================
+# 2. ASSESSABLE UNITS (All 61 Master Execution IDs)
+# ===========================================================================
+assessment_units:
+  # --- CANADIAN BUSINESS BANKING (10) ---
+  - id: 301069
+    label: Merchant Solutions (Canada)
+    segment_id: cbb
+  - id: 301451
+    label: BB - Cash Management
+    segment_id: cbb
+  - id: 301479
+    label: Commercial Banking Centres (CBC)
+    segment_id: cbb
+  - id: 301485
+    label: Small Business Banking - Deposits/Term
+    segment_id: cbb
+  - id: 301486
+    label: Small Business Banking - Credit
+    segment_id: cbb
+  - id: 301487
+    label: Commercial Banking - Deposits/Term
+    segment_id: cbb
+  - id: 301488
+    label: Commercial Banking - Credit
+    segment_id: cbb
+  - id: 301570
+    label: Small Business Banking Distribution
+    segment_id: cbb
+  - id: 700005
+    label: TD Auto Finance (Canada)
+    segment_id: cbb
+  - id: 700128
+    label: Business Banking 1B Governance and Controls
+    segment_id: cbb
+
+  # --- CANADIAN PERSONAL BANKING (17) ---
+  - id: 301064
+    label: Canadian Credit Cards including MBNA
+    segment_id: cpb
+  - id: 301087
+    label: TD Investment Services Inc.
+    segment_id: cpb
+  - id: 301270
+    label: Everyday Banking
+    segment_id: cpb
+  - id: 301273
+    label: Personal Lending
+    segment_id: cpb
+  - id: 301274
+    label: Real Estate Secured Lending (RESL)
+    segment_id: cpb
+  - id: 301275
+    label: Personal Savings and Investing
+    segment_id: cpb
+  - id: 301365
+    label: ATM Channel Canada
+    segment_id: cpb
+  - id: 301366
+    label: Canadian Branch Banking (Retail) /Branch Banking Delivery Excellence (BBDE)
+    segment_id: cpb
+  - id: 301368
+    label: Contact Center Canada
+    segment_id: cpb
+  - id: 301475
+    label: Mobile Mortgage Specialists (MMS)
+    segment_id: cpb
+  - id: 301476
+    label: Broker Services & Operations
+    segment_id: cpb
+  - id: 301478
+    label: Canadian Personal Banking Operations
+    segment_id: cpb
+  - id: 301571
+    label: Customer Assistance (Collections)
+    segment_id: cpb
+  - id: 700179
+    label: CPB Business Management and Governance
+    segment_id: cpb
+  - id: 700180
+    label: CPB Strategy & Enablement
+    segment_id: cpb
+  - id: 700181
+    label: NACO Strategy & Enablement
+    segment_id: cpb
+  - id: 700342
+    label: CPB Digital
+    segment_id: cpb
+
+  # --- FCRM (8) ---
+  - id: 501516
+    label: FCRM Global Sanctions (Enterprise)
+    segment_id: fcrm
+  - id: 501525
+    label: FCRM - Canada Business Oversight
+    segment_id: fcrm
+  - id: 700025
+    label: Canadian Monitoring Coverage and Capabilities (CA MCC)
+    segment_id: fcrm
+  - id: 700065
+    label: FCRM, Policy & Control Effectiveness, Canada
+    segment_id: fcrm
+  - id: 700089
+    label: Financial Crime Investigation (FCI)
+    segment_id: fcrm
+  - id: 700090
+    label: FCRM Governance and Regulatory Matters, Canada
+    segment_id: fcrm
+  - id: 700182
+    label: Canada Know Your Customer ("KYC") Program
+    segment_id: fcrm
+  - id: 700206
+    label: FCRM Business Management Group Canada
+    segment_id: fcrm
+
+  # --- INSURANCE (3) ---
+  - id: 101522
+    label: TDI - General Insurance
+    segment_id: insurance
+  - id: 101523
+    label: TDI - Life and Health
+    segment_id: insurance
+  - id: 101524
+    label: TDI - Re-insurance Barbados
+    segment_id: insurance
+
+  # --- PLATFORMS & TECHNOLOGY (7) ---
+  - id: 301367
+    label: Canadian Personal Banking Technology
+    segment_id: platforms_technology
+  - id: 700086
+    label: Protect Platforms - Financial Crimes Prevention & Operations (FCPO) - Canada
+    segment_id: platforms_technology
+  - id: 700097
+    label: Corporate Platform - Wealth Management Platform
+    segment_id: platforms_technology
+  - id: 700099
+    label: Canadian Business Banking Platform
+    segment_id: platforms_technology
+  - id: 700183
+    label: Canadian Insurance Technology
+    segment_id: platforms_technology
+  - id: 700207
+    label: Protect Platform - Technology and Cyber Security (AML Impacting)
+    segment_id: platforms_technology
+  - id: 700208
+    label: Protect Platform - Technology and Cyber Security (NON-AML impacting)
+    segment_id: platforms_technology
+
+  # --- TRANSFORMATION, ENABLEMENT, & CUSTOMER EXPERIENCE (4) ---
+  - id: 501012
+    label: Sustainability and Corporate Citizenship (S&CC)
+    segment_id: te_ce
+  - id: 501014
+    label: Corporate and Public Affairs (CAPA)
+    segment_id: te_ce
+  - id: 700113
+    label: Analytics, Insights & Artificial Intelligence (AI2)
+    segment_id: te_ce
+  - id: 700117
+    label: Marketing Canada
+    segment_id: te_ce
+
+  # --- WEALTH (12) ---
+  - id: 101011
+    label: TD Direct Investing CAN
+    segment_id: wealth
+  - id: 101013
+    label: TD Wealth Private Banking CAN
+    segment_id: wealth
+  - id: 101014
+    label: TD Wealth Private Investment Counsel CAN
+    segment_id: wealth
+  - id: 101015
+    label: TD Wealth Private Trust CAN
+    segment_id: wealth
+  - id: 101016
+    label: TD Asset Management
+    segment_id: wealth
+  - id: 101019
+    label: TD Wealth Financial Planning
+    segment_id: wealth
+  - id: 101020
+    label: TD Waterhouse Insurance Services Inc.
+    segment_id: wealth
+  - id: 101021
+    label: TD Wealth Private Investment Advice
+    segment_id: wealth
+  - id: 101051
+    label: Wealth National Office
+    segment_id: wealth
+  - id: 700061
+    label: GMI Servicing Inc.
+    segment_id: wealth
+  - id: 700115
+    label: Wealth Advisory Services
+    segment_id: wealth
+  - id: 700125
+    label: TDGIS Hong Kong
+    segment_id: wealth

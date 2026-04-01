@@ -1,0 +1,50 @@
+version: 1.0.0
+metadata:
+  name: FY25 Risk Assessment Scoping Boundaries
+  owner: FCRM Enterprise Risk Assessment Reporting Team
+  document_reference: "Scope State Document"
+
+# ===========================================================================
+# 1. ASSESSMENT EXECUTION WINDOWS
+# ===========================================================================
+assessment_period:
+  id: fy25_annual
+  label: "FY25 Annual Risk Assessment"
+
+time_windows:
+  - id: assessment_period_cumulative
+    label: "Cumulative count/value over the full FY25 Assessment Period"
+  - id: end_of_period_snapshot
+    label: "Point-in-time snapshot at the end of the Assessment Period"
+
+# ===========================================================================
+# 2. WORK PACKAGES (The Execution Containers)
+# ===========================================================================
+work_packages:
+  - id: wp_01
+    label: "Inherent Risk BDEs"
+  - id: wp_02
+    label: "Inherent Risk Supplemental Metrics"
+  - id: wp_03
+    label: "Control Assessment Metrics"
+  - id: wp_04
+    label: "Anti-Bribery Anti-Corruption Metrics"
+
+# ===========================================================================
+# 3. APPLICABILITY & POPULATION BOUNDARIES
+# ===========================================================================
+applicability_strategies:
+  - id: global_inclusion
+    label: "Applies to all Assessable Units in org_structure.yaml"
+  - id: explicit_exclusion
+    label: "Applies to all AUs EXCEPT the specified 'excluded_aus' list"
+  - id: explicit_inclusion
+    label: "Applies ONLY to the explicitly listed AUs"
+
+population_boundaries:
+  - id: full_au_population
+    label: "All customers/accounts within the Assessable Unit"
+  - id: centralized_crr_only
+    label: "Only customers rated via centralized Oracle CRR model"
+  - id: decentralized_crr_only
+    label: "Only customers rated via decentralized manual processes"

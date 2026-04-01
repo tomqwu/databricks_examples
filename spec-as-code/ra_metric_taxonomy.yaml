@@ -1,0 +1,72 @@
+version: 1.0.0
+metadata:
+  name: FCRM Risk Assessment Metric Taxonomy
+  owner: FCRM Spec Library Platform Team
+  document_reference: "FY25 Methodology Deck (Slide 7) & Scope State Document"
+
+# ===========================================================================
+# 1. RISK DOMAINS (From RA Excel Mappings)
+# ===========================================================================
+risk_domains:
+  - id: aml_ir
+    label: "AML Inherent Risk"
+  - id: sanctions_ir
+    label: "Sanctions Inherent Risk"
+  - id: abac_ir
+    label: "ABAC Inherent Risk"
+
+# ===========================================================================
+# 2. RISK CATEGORIES (From Methodology Deck)
+# ===========================================================================
+risk_categories:
+  - id: customer_risk
+    label: "Customer Risk"
+    factor_count: 11
+  - id: products_services_risk
+    label: "Products & Services Risk"
+    factor_count: 2
+  - id: transactional_risk
+    label: "Transactional Risk"
+    factor_count: 8
+  - id: delivery_channel_risk
+    label: "Delivery Channel Risk"
+    factor_count: 2
+  - id: operational_geographic_risk
+    label: "Operational Geographic Risk"
+    factor_count: 3
+  - id: emerging_risk
+    label: "Emerging Risk"
+    factor_count: 5
+
+# ===========================================================================
+# 3. METRIC CLASSIFICATIONS
+# ===========================================================================
+metric_types:
+  - id: base_data_element
+    label: "Base Data Element (BDE)"
+    description: "Core quantitative metric for inherent risk calculations"
+  - id: supplemental
+    label: "Supplemental Metric"
+    description: "Contextual data points supporting inherent risk profiles"
+  - id: control_metric
+    label: "Control Metric"
+    description: "Metrics assessing KYC, Investigations, or Reporting effectiveness"
+
+# ===========================================================================
+# 4. DATA SOURCE CATEGORIES (From Scope State Document, Section 4)
+# ===========================================================================
+data_source_categories:
+  - id: rahona
+    label: "Rahona Data Platform"
+    systems:
+      - CAEDW
+      - CIF
+      - S3S
+      - MBNA
+      - WCA
+      - WCDA
+      - ODR
+      - BBCMN
+  - id: adido
+    label: "ADIDO Sources"
+    description: "Business-managed side-loaded files and vendor extracts"
