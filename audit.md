@@ -1,64 +1,69 @@
-# Governance, Decision & Issue Management Standard
+# Standard Operating Procedure (SOP)
+## Validation, Quality Assurance, and Governance for AML Process
 
 ### Document Control
 | Attribute | Detail |
 | :--- | :--- |
-| **Document Title** | ML/TF and Sanctions Risk Assessment: Governance & Issue Management |
+| **Document Title** | ML/TF and Sanctions Risk Assessment: QA & Governance Standard |
 | **Document Owner** | FCRM Enterprise Risk Assessment Reporting Team |
 | **Effective Date** | April 2026 |
-| **Version** | 1.1 |
+| **Version** | 2.0 (Integrated QA & Governance) |
 | **Target Audience** | 1LOD, 2LOD, 3LOD (Internal Audit), and Regulatory Reviewers |
 
 ---
 
-## 1.0 Purpose
-This section defines the mandatory governance protocols, issue management workflows, and decision traceability standards for the ML/TF and Sanctions Risk Assessment process. Adherence to these procedures ensures that all methodology decisions, blockers, and scope changes are transparent, auditable, and formally approved via the system of record (Jira).
+### 1. Purpose
+This SOP outlines the mandatory validation, quality assurance (QA), and governance protocols for the FY25 Anti-Money Laundering (AML) and Sanctions Enterprise Risk Assessment process. Adherence to these procedures ensures that methodology decisions, blockers, scope changes, and data outputs are accurate, transparent, auditable, and formally approved via the system of record (Jira).
 
-## 2.0 Decision Logging & Workflow Traceability
-All business logic, scoping, and methodological decisions must be captured within Jira. The transition of a metric ticket through defined workflow states serves as the immutable, auditable log of decision-making.
+### 2. Scope
+This SOP applies to all AML data processing, monitoring, reporting, and analytics activities executed within the Risk Assessment cycle. This includes the processing of the defined metrics, automated Rahona data warehouse feeds, business-managed ADIDO files, and the underlying Spec-as-Code execution pipelines.
 
-* **2.1 Logic Definition & Semantics:** Initial business rules and metric definitions are documented and formalized while the ticket is in **BUSINESS LOGIC DESIGN DEF** and **BUSINESS LOGIC SEMANTIC** states. 
-* **2.2 Formal Approval Gates:** No execution can finalize without documented business consent. Decisions are formally logged when a ticket transitions through required approval states, including **PO CONCURRENCE**, **AU REVIEW APPROVAL**, and ultimately **PO APPROVED**.
-* **2.3 Out-of-Band Decisions:** No unlogged, out-of-band decisions are permitted. All sign-offs must be reflected by transitioning the Jira ticket to the appropriate state.
+---
 
-## 3.0 Assumption & Data Tracking
-Assumptions made during data collection, including privacy constraints, source identification, and proxy data usage, must be formally documented to ensure they are visible and validated.
+### 3. Validation Planning & Decision Traceability
+**Objective:** To define a structured approach for validating AML processes before execution and ensuring business logic is formally agreed upon.
+* **Validation Scope:** Clearly identify the datasets, target systems, and expected outputs for each Work Package (e.g., WP-01 BDEs, WP-04 ABAC).
+* **Governance - Decision Logging:** All business logic, scoping, and methodological decisions must be captured within Jira. No unlogged, out-of-band decisions are permitted. Initial business rules and metric definitions must be formalized while the ticket is in **BUSINESS LOGIC DESIGN DEF** and **BUSINESS LOGIC SEMANTIC** states.
+* **Governance - Assumption Tracking:** Ambiguities in requirements, default thresholds, or assumptions regarding proxy data usage must be formally documented to ensure they are visible and validated. This is resolved while the ticket is in the **METRIC DEFINITION CLARIFICATION** or **BAU CDE DOCUMENTATION** state.
 
-* **3.1 Clarification & Documentation:** Ambiguities in requirements or assumptions regarding data usage must be resolved while the ticket is in the **METRIC DEFINITION CLARIFICATION** or **BAU CDE DOCUMENTATION** state.
-* **3.2 Data Sourcing Lineage:** The identification and provisioning of data are tracked explicitly through states such as **DATA SOURCE(S) IDENTIFIED**, **DAC OR ADIDO LOAD PROCESS**, and **DATA PROVISIONED IN AZ**.
-* **3.3 Privacy & Compliance:** Any metric requiring Privacy Impact Assessments (PIA) must accurately reflect its compliance status via the **PIA BUILD**, **WITH PRIVACY TEAM**, and **PIA APPROVED** states before build completion.
+### 4. Data Quality Checks & Sourcing
+**Objective:** To ensure data used in AML processes is accurate, complete, consistent, and traceable prior to metric calculation.
+* **Completeness & Accuracy:** Validate data against source systems to ensure data availability meets the 95% threshold.
+* **Consistency & Uniqueness:** Cross-check values across datasets and identify duplicate records within the Assessable Unit (AU) populations.
+* **Governance - Sourcing Lineage:** The identification and provisioning of data are tracked explicitly through Jira workflow states. The ticket must accurately reflect its upstream dependency via **DATA SOURCE(S) IDENTIFIED** and **DAC OR ADIDO LOAD PROCESS**.
 
-## 4.0 Issue Logging & The RAID Log
-Anomalies, pipeline blockers, or data quality concerns identified during the assessment cycle must be centralized and documented.
+### 5. Reconciliation
+**Objective:** To ensure data consistency between source systems and final AML outputs.
+* **Data Provisioning:** Track pipeline completion and data staging via the **DATA PROVISIONED IN AZ** Jira state.
+* **Record Count Validation:** Reconcile record counts between source and processed data to ensure the baseline population matches the engine's output after taxonomy filtering is applied.
+* **Identify Variances:** Document and investigate variances or anomalies where the pipeline drops unexpected records.
 
-* **4.1 The BLOCKED State:** If a metric cannot proceed due to an upstream issue, the Jira ticket must be immediately transitioned to **BLOCKED**. 
-* **4.2 The RAID Log Integration:** Any ticket moved to **BLOCKED** must have a corresponding entry captured in the formal project RAID Log (Risks, Assumptions, Issues, Dependencies). The RAID log acts as the primary artifact for tracking the root cause and remediation plan.
+### 6. Reasonability Analysis
+**Objective:** To assess whether AML outputs are logical, within expected thresholds, and accurately reflect the business reality of the Assessable Unit.
+* **Trend & Outlier Analysis:** Evaluate metric stability across the Assessment Cycle and identify AUs with highly abnormal risk scores.
+* **Threshold Validation:** Ensure mathematical filters and business rules (e.g., specific transaction thresholds) are executing properly according to the defined taxonomy.
+* **Methodology Alignment:** Compare current data outputs against historical proxy data/questionnaires to identify methodology shifts.
 
-## 5.0 Severity Assessment
-Issues captured within the RAID log must undergo a standardized severity assessment to ensure resources are allocated to the highest-priority blockers.
+### 7. Peer Review & Compliance Checks
+**Objective:** To ensure independent validation of work performed and strict adherence to privacy constraints.
+* **Independent Review:** Assign a reviewer independent of the preparer to validate methodology, calculations, and assumptions.
+* **Governance - Privacy Compliance:** Any metric requiring a Privacy Impact Assessment (PIA) must accurately reflect its compliance status. The ticket must pass through the **PIA BUILD**, **WITH PRIVACY TEAM**, and **PIA APPROVED** states before build completion.
+* **Review Approval:** Document review comments and resolutions, capturing all challenge discussions in the metric's Jira ticket and transitioning the state to **AU REVIEW APPROVAL**.
 
-* **5.1 Assessment Criteria:** The assessment evaluates the issue's potential impact on regulatory reporting timelines, data accuracy, and overall project scope. Critical data gaps or systemic execution failures are prioritized.
+### 8. Output Verification
+**Objective:** To confirm final outputs are accurate, properly formatted, and ready for use in downstream aggregation systems.
+* **Pre-Execution Check:** Verify output format, structure, and key calculations against regulatory requirements.
+* **Execution Gating:** A ticket cannot transition to execution states (e.g., **BUILD IN PROGRESS (PART)**, **BUILD IN PROGRESS (FULL)**, or **BUILD COMPLETE**) until all prerequisite logic, privacy, and data QA checks outlined in Steps 3-7 are cleared.
 
-## 6.0 Escalation Pathways
-When an issue cannot be resolved at the execution level within established Service Level Agreements (SLAs), a structured escalation matrix must be utilized.
+### 9. Issue Management & The RAID Log
+**Objective:** To track, escalate, and resolve anomalies, pipeline blockers, or data quality concerns in a transparent and auditable manner.
+* **Governance - Issue Logging:** If a metric cannot proceed due to an upstream QA failure or data issue, the Jira ticket must be immediately transitioned to the **BLOCKED** state. A corresponding entry must be captured in the formal project **RAID Log** (Risks, Assumptions, Issues, Dependencies).
+* **Governance - Severity Assessment:** Issues must undergo a standardized severity assessment to prioritize critical data gaps (P1) or systemic execution failures (P2) over localized logic discrepancies.
+* **Governance - Escalation Pathways:** When an issue cannot be resolved within SLAs, utilize a structured escalation matrix (Developer -> Team Lead -> Project Manager -> Business Stakeholders / 2LOD). Escalations must clearly categorize the blocker (e.g., Data Issue, Timeline Constraint).
+* **Governance - Resolution & Unblocking:** An issue is formally considered resolved only when marked "Closed" within the RAID log. Only at this point may the Jira ticket leave the `BLOCKED` state and proceed toward **READY FOR FINAL REVIEW**.
 
-* **6.1 Path of Escalation:** Developer -> Team Lead -> Project Manager (PM) -> Business Stakeholders / 2LOD.
-* **6.2 Blocker Categorization:** Escalations must categorize the blocker (e.g., Data Issue, Timeline Constraint, Requirement Ambiguity) to trigger the correct intervention, such as targeted blocker calls or PIA process escalations.
-
-## 7.0 Resolution & Unblocking
-Strict prerequisites govern the movement of tasks blocked by identified issues.
-
-* **7.1 Workflow Gating:** A ticket in the **BLOCKED** state cannot be transitioned to execution states (e.g., **BUILD IN PROGRESS (PART)**, **BUILD IN PROGRESS (FULL)**, or **BUILD COMPLETE**) until the underlying issue is remediated.
-* **7.2 Formal Closure:** An issue is formally considered resolved only when the item is marked "Closed" within the RAID log, at which point the Jira ticket may proceed toward **READY FOR FINAL REVIEW**.
-
-## 8.0 Risk Acceptance (Data Unavailability)
-In scenarios where an issue (such as an unresolvable data gap) cannot be remediated prior to mandatory reporting deadlines, a formal Risk Acceptance process is triggered.
-
-* **8.1 The NOT AVAILABLE State:** If data completeness falls below required thresholds and is formally risk-accepted by all key stakeholders (BA, Business Owner, Team Lead, Dev), the metric ticket is transitioned to the **NOT AVAILABLE** state.
-* **8.2 Methodology Impact:** In alignment with AML methodology, metrics marked as **NOT AVAILABLE** will trigger a default to a higher risk rating for the impacted Assessable Unit to prevent artificial suppression of Inherent Risk.
-
-## 9.0 Decommissioning & Out of Scope
-When structural components of the risk assessment become obsolete or are deemed out of scope, they undergo a controlled deprecation process.
-
-* **9.1 Deprecation States:** Metrics, Assessable Units, or specific Work Packages that are retired or no longer applicable for the current cycle must be transitioned to the **NO LONGER REQUIRED** or **NOT APPLICABLE** Jira states.
-* **9.2 Historical Traceability:** This ensures the assets are systematically excluded from the current build (preventing unnecessary execution) while preserving the historical audit trail of their lifecycle.
+### 10. Sign-Off, Risk Acceptance & Decommissioning
+**Objective:** To formally approve validation results, log risk acceptance for unresolvable issues, and cleanly deprecate obsolete scope.
+* **Formal Approval Gates:** No execution can finalize without documented business consent. Decisions are formally logged when a ticket transitions through **PO CONCURRENCE** and ultimately **PO APPROVED**.
+* **Governance - Risk Acceptance:** If data completeness falls below required thresholds and cannot be remediated before reporting deadlines, it must be formally risk-accepted by all key stakeholders. The metric ticket is transitioned to the **NOT AVAILABLE** state. In alignment with AML methodology, this triggers a default to a higher risk rating for the impacted AU to prevent artificial suppression of Inherent Risk.
+* **Governance - Decommissioning & Out of Scope:** Metrics, Assessable Units, or Work Packages that are retired or no longer applicable for the current cycle must be transitioned to the **NO LONGER REQUIRED** or **NOT APPLICABLE** Jira states. This ensures historical traceability while systematically excluding them from the current Spec-as-Code build.
