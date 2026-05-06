@@ -7,7 +7,7 @@
 | Document Title | Git & Databricks Notebook Best Practices |
 | Document Owner | FCRM Enterprise Risk Assessment Reporting Team |
 | Effective Date | April 2026 |
-| Version | 2.0 (supersedes v1.1) |
+| Version | 2.0 (supersedes v1.1). Section 4 is a v2.1 working draft pending lineage detail from Databricks workspace. |
 | Target Audience | MCC Developers, Team Leads, 1LOD, 2LOD, Internal Audit |
 | Systems of Record | GitHub (`TD-Universe/RAFY2025_CA`) + Databricks + Jira (FY25 RA CYCLE - DATA) |
 
@@ -155,56 +155,110 @@ The following are documented gaps for FY2025; **do not attempt to retroactively 
 
 ---
 
-## 4. Future Recommendations (FY2026 Cycle)
+## 4. Future Recommendations (FY2026 Cycle) — Working Draft
+
+> **Status: provisional (v2.1 draft).** The folder layout below is a sketch of a lineage-aligned design. The naming conventions, JIRA hygiene, and ABAC handling rules in 4.2–4.5 are stable. The folder structure in 4.1 will be refined once the following are reviewed: contents of `Configs/`, `SRZ_TO_ADLS/`, `LOBs/`, `Data_Quality_Checks/Lobs/` and `TABLE_VIEW_CREATION/`, plus a representative centralized notebook and an ABAC notebook.
 
 The following changes should be designed and agreed before FY2026 cycle kickoff. They are informed by the pain points logged during FY2025 and by the structural mismatch between regular and ABAC workloads.
 
-### 4.1 Two-Zone Folder Structure
+### 4.1 Lineage-Aligned Folder Structure (Provisional)
 
-Split the workspace into two clear zones reflecting how work actually behaves:
+**Design principle:** the folder structure should mirror the data lineage flow. An auditor tracing source → transformation → output should be able to walk the folder tree in the same order. This makes the workspace self-documenting and aligns directly with the V&QA SOP (Sujai) Step 2 (Data Quality Checks) and Step 6 (Output Verification).
+
+**Lineage stages (FCRM RA cycle):**
+
+```
+[1] Configs & Catalogues          → schema, CDEs, connections
+[2] Source Ingestion              → Rahona (SRZ/CZ) + ADIDO → CA AZ
+[3] Transformations               → per-AU + centralized + ABAC
+[4] Data Quality Checks           → completeness, accuracy, reconciliation
+[5] Views                         → consumption layer
+[6] Outputs                       → CA AZ tables → Static Sheet → IRAT → Excel mastersheet
+```
+
+**Provisional folder layout mapped to those stages:**
 
 ```
 RAFY2026_CA/
-├── 01_Metrics_by_AU/                ← per-AU dev work (2–3 AUs / dev)
-│   ├── CBB/
-│   │   ├── 301069_Merchant_Solution/
-│   │   │   ├── M1.1_301069.ipynb
-│   │   │   ├── M1.2_301069.ipynb
-│   │   │   └── README.md
-│   │   ├── 301451_CMS/
-│   │   └── 301479_CBC_Distribution/
-│   ├── CPB/  GMI/  P_and_T/  TDGIS/  TDI/  TE_CE/  WEALTH/
+├── 00_Configs/                          ← [1] catalogues, connections, CDE registry
+│   ├── Catalogues/                      (Create_Adhoc, Create_Adido, Create_Analysis, etc.)
+│   ├── Connections/                     (GAMLConnections, Settings)
+│   └── CDE_Registry/                    (RA_BUSINESS_CDEs)
 │
-├── 02_Centralized_Data/             ← one-query-many-AUs work
-│   ├── Regular/
-│   │   ├── M1.1_Unscored_View.ipynb
-│   │   ├── M1.2_HRC_Tier12.ipynb
-│   │   └── M3.17_UTR.ipynb
-│   ├── ABAC/                        ← ABAC moves out of per-LOB; same pattern
-│   │   ├── eba01.ipynb
-│   │   ├── eba02.ipynb
-│   │   ├── _shared/
-│   │   │   ├── abac_au_list.py      ← canonical 61-AU list
-│   │   │   └── abac_utils.py
-│   │   └── README.md                ← eba# → M4.x mapping table
-│   └── README.md
+├── 01_Source_Ingestion/                 ← [2] source → CA AZ landing
+│   ├── Rahona_SRZ_to_ADLS/
+│   └── ADIDO_Load/
 │
-├── 03_Configs/
-├── 04_DQ_Checks/
-└── 05_Views/
+├── 02_Transformations/                  ← [3] business logic per metric
+│   ├── Centralized/                     ← one query, many AUs
+│   │   ├── Regular/
+│   │   │   ├── M1.1_Unscored_View.ipynb
+│   │   │   └── M1.2_HRC_Tier12.ipynb
+│   │   └── ABAC/
+│   │       ├── eba01.ipynb
+│   │       ├── eba02.ipynb
+│   │       └── _shared/
+│   │           ├── abac_au_list.py      ← canonical 61-AU list
+│   │           └── abac_utils.py
+│   └── Per_AU/                          ← per-AU dev work (2–3 AUs / dev)
+│       ├── CBB/
+│       │   ├── AU_301069_Merchant_Solution/
+│       │   │   ├── M1.1_301069.ipynb
+│       │   │   └── M1.2_301069.ipynb
+│       │   └── AU_301451_CMS/
+│       └── CPB/  GMI/  P_and_T/  TDGIS/  TDI/  TE_CE/  WEALTH/
+│
+├── 03_DQ_Checks/                        ← [4] validation layer
+│
+├── 04_Views/                            ← [5] consumption views
+│
+└── 05_Outputs/                          ← [6] what feeds the Excel mastersheet
 ```
 
-**Why two zones:**
+**Why lineage-aligned beats workload-aligned:**
 
-- `01_Metrics_by_AU/` matches dev assignments (2–3 AUs / dev) and gives per-metric commits within an AU folder.
-- `02_Centralized_Data/` consolidates everything that is "one query, many AUs" — regular cross-AU views and ABAC use the same workload pattern.
-- ABAC subfolder duplication across LOBs is eliminated.
+- An auditor opens `00_Configs/` first to understand the schema, then walks down to `05_Outputs/` to see what was produced. The folder tree itself answers the audit question "where did the data come from and how did it become this number?".
+- Per-AU (`Per_AU/`) and one-query-many-AUs (`Centralized/`, including ABAC) both sit under `02_Transformations/` because they are the same lineage stage — just different workload patterns. The split is preserved as subfolders.
+- DQ Checks have a clear home as a distinct lineage stage rather than being scattered inside transformation notebooks (though notebook-level DQ cells stay — see Section 5.4).
 
-### 4.2 Drop JIRA Ticket IDs from Filenames and Commits
+### 4.2 Open Questions (To Resolve Before Locking 4.1)
 
-Use the natural business key — metric ID + AU — instead. JIRA tickets are 1-to-1 with (metric, AU), so the embedded ticket ID is redundant.
+The following need to be confirmed against the actual Databricks workspace before this layout is final:
 
-| Item | FY2025 (current) | FY2026 (proposed) |
+| Question | Why it matters |
+|---|---|
+| What lives in `LOBs/` (top-level) vs `Analysis/[LOB]/`? | Determines whether `LOBs/` is reference data, a separate transformation tier, or duplication. |
+| What is in `SRZ_TO_ADLS/` — is it pure ingestion code, or does it include transformations? | Decides whether stage [2] is just `Rahona_SRZ_to_ADLS/` or needs sub-stages. |
+| How do `Data_Quality_Checks/Lobs/` and `TABLE_VIEW_CREATION/` relate? | DQ-as-stage [4] vs DQ-embedded-in-transformations is a design choice. |
+| How is lineage currently captured inside a centralized notebook? | If `[LINEAGE]` cells already exist (per Section 5.2), they become the lineage anchor. If not, the convention needs to be retrofitted. |
+| Is `eba01`, `eba02`, … an independent numbering or does it map cleanly to M4.1, M4.2, …? | Determines whether the README mapping table in `02_Transformations/Centralized/ABAC/` is one-line or full-table. |
+
+### 4.3 Unified Naming Convention
+
+A single convention applied at every level of the workspace and every Git artifact. The rules are designed so that a folder path or filename, read in isolation, tells the reader exactly what they are looking at.
+
+**Folders:**
+
+| Element | Pattern | Example |
+|---|---|---|
+| Top-level (lineage stage) | `NN_Title_Case_With_Underscores` | `00_Configs`, `02_Transformations`, `05_Outputs` |
+| Subfolder (within a stage) | `Title_Case_With_Underscores` | `Per_AU`, `Centralized`, `CDE_Registry`, `Source_Ingestion` |
+| LOB folder | `UPPERCASE` (preserves existing LOB acronyms) | `CBB`, `CPB`, `WEALTH`, `TDGIS` |
+| AU folder | `AU_<code>_<Name_With_Underscores>` | `AU_301069_Merchant_Solution`, `AU_301479_CBC_Distribution` |
+| Shared / utility folder | `_shared/` (underscore prefix sorts to top, signals internal) | `_shared/` |
+
+**Notebooks:**
+
+| Element | Pattern | Example |
+|---|---|---|
+| Per-AU metric notebook | `M<#.#>_<au_code>.ipynb` | `M1.1_301069.ipynb` |
+| Centralized metric notebook | `M<#.#>_<Descriptor>.ipynb` | `M1.1_Unscored_View.ipynb` |
+| ABAC notebook | `eba<NN>.ipynb` (existing convention) | `eba01.ipynb`, `eba02.ipynb` |
+| Shared module | `<descriptor>.py` | `abac_au_list.py`, `abac_utils.py` |
+
+**Branches and commits:**
+
+| Element | FY2025 (current) | FY2026 (proposed) |
 |---|---|---|
 | Notebook (per-AU) | `FY25DATA-126_unscored.ipynb` | `M1.1_301069.ipynb` |
 | Notebook (centralized) | `FY25DATA-126_unscored_view.ipynb` | `M1.1_Unscored_View.ipynb` |
@@ -214,7 +268,16 @@ Use the natural business key — metric ID + AU — instead. JIRA tickets are 1-
 | Commit (ABAC) | `[FY25DATA-359] Fix date range` | `[eba01] Fix date range` |
 | Branch | `dev/FY25DATA-126-unscored` | `dev/M1.1-301069-unscored` |
 
-### 4.3 JIRA Hygiene — Add Filterable Labels
+**Underlying principles:**
+
+1. **Lineage stage prefix (`NN_`) only at top level** — reinforces the six-stage flow without polluting deeper paths.
+2. **`Title_Case_With_Underscores` for hierarchical folders** — readable, sortable, no ambiguity about word breaks.
+3. **`UPPERCASE` reserved for established acronyms** — LOBs (`CBB`, `CPB`), `ABAC`. Don't invent new uppercase tokens.
+4. **`AU_` prefix on AU folders** — self-documenting; no risk of mistaking `301069_Merchant_Solution` for a date or a ticket ID.
+5. **Type prefix in filenames** — `M` = metric, `eba` = ABAC. A file named `M1.1_301069.ipynb` is unambiguous on sight.
+6. **JIRA ticket IDs dropped from filenames, branches, and commits.** JIRA tickets are 1-to-1 with (metric, AU); embedding the ticket ID is redundant. Audit traceability moves to JIRA labels — see Section 4.4.
+
+### 4.4 JIRA Hygiene — Add Filterable Labels
 
 To preserve audit traceability after dropping ticket IDs from commits, add two labels to every Jira ticket:
 
@@ -227,24 +290,25 @@ Audit recovery path becomes:
 
 Without these labels, recovery falls back to keyword search on ticket titles, which is fragile.
 
-### 4.4 Per-Metric Commits — Strict
+### 4.5 Per-Metric Commits — Strict
 
 One commit per (metric, AU) change. Never bundle two metric IDs in a single commit, even within the same AU folder. This is the structural reason for splitting AU-as-notebook into AU-as-folder-with-metric-notebooks.
 
-### 4.5 ABAC Special Handling
+### 4.6 ABAC Special Handling
 
 - One notebook per ABAC metric (`eba01.ipynb`, `eba02.ipynb`, …); each notebook iterates over the canonical 61-AU list.
 - `_shared/abac_au_list.py` holds the AU list — every ABAC notebook imports it. **No copy-paste.**
 - `_shared/abac_utils.py` for shared transformations.
-- `README.md` in `02_Centralized_Data/ABAC/` carries the `eba# → M4.x` mapping so any auditor can resolve an ABAC notebook to its metric definition without guessing.
+- `README.md` in `02_Transformations/Centralized/ABAC/` carries the `eba# → M4.x` mapping so any auditor can resolve an ABAC notebook to its metric definition without guessing.
 
-### 4.6 Migration Plan (Pre-FY2026 Kickoff)
+### 4.7 Migration Plan (Pre-FY2026 Kickoff)
 
-1. **Agree** the two-zone structure and naming convention with Team Leads and 1LOD before the cycle starts.
-2. **Pre-create** the `RAFY2026_CA` repository and seed the folder skeleton.
-3. **Migrate** the canonical 61-AU list and shared utilities into `02_Centralized_Data/ABAC/_shared/` early so all ABAC notebooks import a single source.
-4. **Apply Jira labels retroactively** to a sample of FY2025 tickets to validate the filter recovery path before going live.
-5. **Update** Change Management SOP, Audit Summary, and onboarding docs to reflect the new conventions.
+1. **Resolve open questions** in 4.2 by reviewing the actual Databricks workspace contents.
+2. **Lock the lineage-aligned structure** with Team Leads and 1LOD before cycle kickoff.
+3. **Pre-create** the `RAFY2026_CA` repository and seed the folder skeleton matching the six lineage stages.
+4. **Migrate** the canonical 61-AU list and shared utilities into `02_Transformations/Centralized/ABAC/_shared/` early so all ABAC notebooks import a single source.
+5. **Apply Jira labels retroactively** to a sample of FY2025 tickets to validate the filter recovery path before going live.
+6. **Update** Change Management SOP, Audit Summary, and onboarding docs to reflect the new conventions.
 
 ---
 
