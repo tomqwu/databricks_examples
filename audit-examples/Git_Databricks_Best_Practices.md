@@ -221,14 +221,16 @@ The following changes should be agreed before FY2026 cycle kickoff. They are inf
 
 ```
 [1] Configs & Catalogues          → schema, CDEs, connections
-[2] Source Ingestion              → Rahona (SRZ/CZ) + ADIDO → CA AZ
-[3] Transformations               → per-AU + centralized + ABAC
-[4] Data Quality Checks           → completeness, accuracy, reconciliation
-[5] Views                         → consumption layer
+[2] Source Ingestion              → Rahona (SRZ/CZ) + ADIDO → CA AZ snapshot tables
+[3] Views                         → stable read layer over snapshot tables
+[4] Transformations               → per-AU + centralized + ABAC
+[5] Data Quality Checks           → completeness, accuracy, reconciliation
 [6] Outputs                       → CA AZ tables → Static Sheet → IRAT → Excel mastersheet
 ```
 
-**Provisional folder layout mapped to those stages:**
+> **Note (Raghul, May 2026):** Views sit between ingestion and transformations — they are the stable interface that downstream metric notebooks read from. Putting Views immediately after ingestion in the folder tree mirrors the actual read path and keeps lineage traceable.
+
+**Folder layout mapped to those stages:**
 
 ```
 RAFY2026_CA/
@@ -241,7 +243,9 @@ RAFY2026_CA/
 │   ├── Rahona_SRZ_to_ADLS/
 │   └── ADIDO_Load/
 │
-├── 02_Transformations/                  ← [3] business logic per metric
+├── 02_Views/                            ← [3] stable read layer (RA_FY26_VIEW catalogue)
+│
+├── 03_Transformations/                  ← [4] business logic per metric (reads from 02_Views)
 │   ├── Centralized/                     ← one query, many AUs
 │   │   ├── Regular/
 │   │   │   ├── M1.1_Unscored_View.ipynb
@@ -260,9 +264,7 @@ RAFY2026_CA/
 │       │   └── AU_301451_CMS/
 │       └── CPB/  GMI/  P_and_T/  TDGIS/  TDI/  TE_CE/  WEALTH/
 │
-├── 03_DQ_Checks/                        ← [4] validation layer
-│
-├── 04_Views/                            ← [5] consumption views
+├── 04_DQ_Checks/                        ← [5] validation layer
 │
 └── 05_Outputs/                          ← [6] what feeds the Excel mastersheet
 ```
@@ -270,7 +272,8 @@ RAFY2026_CA/
 **Why lineage-aligned beats workload-aligned:**
 
 - An auditor opens `00_Configs/` first to understand the schema, then walks down to `05_Outputs/` to see what was produced. The folder tree itself answers the audit question "where did the data come from and how did it become this number?".
-- Per-AU (`Per_AU/`) and one-query-many-AUs (`Centralized/`, including ABAC) both sit under `02_Transformations/` because they are the same lineage stage — just different workload patterns. The split is preserved as subfolders.
+- Views (`02_Views/`) sit immediately after ingestion because transformations read from views, not raw snapshot tables. Putting Views before Transformations in the folder tree matches the actual data flow.
+- Per-AU (`Per_AU/`) and one-query-many-AUs (`Centralized/`, including ABAC) both sit under `03_Transformations/` because they are the same lineage stage — just different workload patterns. The split is preserved as subfolders.
 - DQ Checks have a clear home as a distinct lineage stage rather than being scattered inside transformation notebooks (though notebook-level DQ cells stay — see Section 5.4).
 
 ### 4.2 As-Is → To-Be Mapping
@@ -284,15 +287,17 @@ Each existing FY2025 location maps to a target FY2026 location. This is a reorga
 | `Configs/RA_BUSINESS_CDEs` | `00_Configs/CDE_Registry/` | CDE registry. |
 | `Configs/Settings` | `00_Configs/Connections/Settings` | Constants and parameters; co-located with connections. |
 | `SRZ_TO_ADLS/[AU folder]/` | `01_Source_Ingestion/Rahona_SRZ_to_ADLS/[AU folder]/` | One folder per AU group (preserve current grouping like `CBB Credit(301486,301488)`). |
-| `Centralized Data/[metric notebook]` | `02_Transformations/Centralized/Regular/M<#.#>_<Descriptor>.ipynb` | Rename to metric-prefixed convention. |
-| `Centralized Data/ABAC/eba0X.ipynb` *(moved here during FY2025 closeout)* | `02_Transformations/Centralized/ABAC/eba0X.ipynb` | Source location after the closeout move described in 3.2. FY2026 just preserves it under the new top-level naming. Adds `_shared/abac_au_list.py`. |
-| `Analysis/[LOB]/[AU notebook]` | `02_Transformations/Per_AU/[LOB]/AU_<code>_<Name>/M<#.#>_<au>.ipynb` | Single AU notebook splits into one notebook per metric inside an AU folder. |
-| `Analysis/[LOB]/ABAC/ABAC <AU>` | (deprecated) | Decentralized historical work by individual devs in past cycles, not a canonical pattern. Replaced by `02_Transformations/Centralized/ABAC/eba0X.ipynb` covering all 61 ABAC AUs in one notebook per metric. |
-| `Data_Quality_Checks/Lobs/` | `03_DQ_Checks/Per_AU/[LOB]/` | Same pattern, renamed for consistency. |
-| `Data_Quality_Checks/TABLE_VIEW_CREATION/` | `03_DQ_Checks/Infrastructure/` | DDL kept distinct from DQ logic. |
-| `Views/` | `04_Views/` | Renumbered, contents preserved. |
-| `LOBs/` (top-level) | **To be confirmed with Team Leads** — keep as `06_LOB_Reference/` if it serves a distinct purpose, or merge into `02_Transformations/Per_AU/` if duplicative. | Open question; not blocking. |
-| `TEST_GITHUB`, `Sample_writing_result_into_table`, `Bit_Bucket_check_in_check_out`, `TestDF_Do_Not_Delete…` | `99_Sandbox/` (or delete) | All test/scratch artifacts consolidated into one Sandbox folder, clearly excluded from audit scope. |
+| `ADIDO_OUT/` (top-level, no landing zone) | `01_Source_Ingestion/ADIDO_Out/` | Distinct from ADIDO IN — only IN has a landing zone. Confirmed Tom Wu, May 2026. |
+| `Views/` | `02_Views/` | Renumbered to sit immediately after ingestion (Raghul, May 2026). Stable read layer over snapshot tables. |
+| `Centralized Data/[metric notebook]` | `03_Transformations/Centralized/Regular/M<#.#>_<Descriptor>.ipynb` | Rename to metric-prefixed convention. |
+| `Centralized Data/ABAC/eba0X.ipynb` *(moved here during FY2025 closeout)* | `03_Transformations/Centralized/ABAC/eba0X.ipynb` | Source location after the closeout move described in 3.2. FY2026 just preserves it under the new top-level naming. Adds `_shared/abac_au_list.py`. |
+| `Analysis/[LOB]/[AU notebook]` | `03_Transformations/Per_AU/[LOB]/AU_<code>_<Name>/M<#.#>_<au>.ipynb` | Single AU notebook splits into one notebook per metric inside an AU folder. AU-level analysis (incl. `700005 - centralized`, `nmm_transactions-2025`) reads from `02_Views/`. |
+| `Analysis/[LOB]/ABAC/ABAC <AU>` | (deprecated) | Decentralized historical work by individual devs in past cycles, not a canonical pattern. Replaced by `03_Transformations/Centralized/ABAC/eba0X.ipynb` covering all 61 ABAC AUs in one notebook per metric. |
+| `Data_Quality_Checks/Lobs/` | `04_DQ_Checks/Per_AU/[LOB]/` | Same pattern, renamed for consistency. |
+| `Data_Quality_Checks/TABLE_VIEW_CREATION/` | `04_DQ_Checks/Infrastructure/` | DDL kept distinct from DQ logic. |
+| `LOBs/` (top-level) | **To be confirmed with Team Leads** — keep as `06_LOB_Reference/` if it serves a distinct purpose, or merge into `03_Transformations/Per_AU/` if duplicative. | Open question; not blocking. |
+| `RA_CDE_DQ_CHECKS/` (top-level) | Archive (FY2024 legacy) | Confirmed FY2024 DQ check tables (Tom Wu, May 2026). Move to FY2024 archive, not in FY2026 active tree. |
+| `TEST_GITHUB`, `Sample_writing_result_into_table`, `Bit_Bucket_check_in_check_out`, `TestDF_Do_Not_Delete…`, etc. | Delete | Confirmed not in use (Tom Wu, May 2026). Safe to delete during FY2026 cleanup. |
 | `BACKUP_FY_2024`, `FY_2023`, `FY_2024` | Archive outside the active workspace | Move to a separate archive workspace or repo. Not in active tree. |
 
 ### 4.3 Unified Naming Convention
@@ -303,7 +308,7 @@ A single convention applied at every level of the workspace and every Git artifa
 
 | Element | Pattern | Example |
 |---|---|---|
-| Top-level (lineage stage) | `NN_Title_Case_With_Underscores` | `00_Configs`, `02_Transformations`, `05_Outputs` |
+| Top-level (lineage stage) | `NN_Title_Case_With_Underscores` | `00_Configs`, `03_Transformations`, `05_Outputs` |
 | Subfolder (within a stage) | `Title_Case_With_Underscores` | `Per_AU`, `Centralized`, `CDE_Registry`, `Source_Ingestion` |
 | LOB folder | `UPPERCASE` (preserves existing LOB acronyms) | `CBB`, `CPB`, `WEALTH`, `TDGIS` |
 | AU folder | `AU_<code>_<Name_With_Underscores>` | `AU_301069_Merchant_Solution`, `AU_301479_CBC_Distribution` |
@@ -363,17 +368,17 @@ One commit per (metric, AU) change. Never bundle two metric IDs in a single comm
 - `_shared/abac_au_list.py` holds the 61-AU list — every ABAC notebook imports it. **No copy-paste.**
 - `_shared/abac_utils.py` for shared transformations.
 - `_shared/00_CC_Mapping_Setup.ipynb` (or `.py` once converted) — utility for creating reusable views, dependency of the `eba0X` notebooks.
-- `README.md` in `02_Transformations/Centralized/ABAC/` carries the eba# → M4.x mapping table for auditors.
+- `README.md` in `03_Transformations/Centralized/ABAC/` carries the eba# → M4.x mapping table for auditors.
 
 ### 4.7 Migration Plan (Pre-FY2026 Kickoff)
 
-1. **Confirm `LOBs/` purpose** with Team Leads — keep as reference tier (`06_LOB_Reference/`) or merge into `02_Transformations/Per_AU/`.
+1. **Confirm `LOBs/` purpose** with Team Leads — keep as reference tier (`06_LOB_Reference/`) or merge into `03_Transformations/Per_AU/`.
 2. **Lock the lineage-aligned structure** with Team Leads and 1LOD before cycle kickoff.
 3. **Pre-create** the `RAFY2026_CA` repository and seed the folder skeleton matching the six lineage stages.
 4. **Standardise `GAMLConnections` invocations.** Inventory every notebook that calls `GAMLConnections`, replace any user-folder paths (`/Workspace/Users/.../GAML/GAMLConnections`) with the shared path. Going forward, only the shared path is permitted; user-folder copies should be deleted.
-5. **ABAC notebooks already in shared workspace** at `Centralized Data/ABAC/` (moved during FY2025 closeout — see 3.2). FY2026 step is just renaming under the new lineage stage `02_Transformations/Centralized/ABAC/`.
-6. **Consolidate test / scratch folders** (`TEST_GITHUB`, `Sample_writing_result_into_table`, `Bit_Bucket_check_in_check_out`, `TestDF_Do_Not_Delete…`, redundant `SAS_DATA_LOAD`) into a single `99_Sandbox/` folder explicitly excluded from audit scope. Archive `BACKUP_FY_2024`, `FY_2023`, `FY_2024` outside the active workspace.
-7. **Migrate** the canonical 61-AU list and shared utilities into `02_Transformations/Centralized/ABAC/_shared/` so all ABAC notebooks import a single source.
+5. **ABAC notebooks already in shared workspace** at `Centralized Data/ABAC/` (moved during FY2025 closeout — see 3.2). FY2026 step is just renaming under the new lineage stage `03_Transformations/Centralized/ABAC/`.
+6. **Delete test / scratch folders** (`TEST_GITHUB`, `Sample_writing_result_into_table`, `Bit_Bucket_check_in_check_out`, `TestDF_Do_Not_Delete…`, redundant `SAS_DATA_LOAD`) — confirmed not in use (Tom Wu, May 2026). Archive `BACKUP_FY_2024`, `FY_2023`, `FY_2024`, and `RA_CDE_DQ_CHECKS` (FY2024 legacy) outside the active workspace.
+7. **Migrate** the canonical 61-AU list and shared utilities into `03_Transformations/Centralized/ABAC/_shared/` so all ABAC notebooks import a single source.
 8. **Apply Jira labels retroactively** to a sample of FY2025 tickets to validate the filter recovery path before going live.
 9. **Update** Change Management SOP, Audit Summary, and onboarding docs to reflect the new conventions.
 
@@ -577,27 +582,12 @@ Items that the author was unable to confirm from the FY2025 workspace alone. Eac
 |---|---|---|---|
 | Q1 | P1 | What is the purpose of `LOBs/` (top-level) versus `Analysis/[LOB]/`? They have overlapping but non-identical LOB lists. | Determines whether `LOBs/` is a reference tier, alternate transformation tier, or duplication. Drives Section 4.1 layout. |
 | Q3 | P2 | `SAS_DATA_LOAD` appears at two levels (top-level under `RiskAssessment` and inside `FY_2025`). Both active? Which is canonical? | Affects archive vs delete decision. |
-| Q4 | P2 | What is in `RA_CDE_DQ_CHECKS` (top-level peer of `RiskAssessment`)? How does it relate to `FY_2025/Data_Quality_Checks/`? | May indicate a separate DQ stream that needs to be reflected in stage [4]. |
-| Q5 | P3 | What is `ADIDO_OUT` (top-level)? Is this where ADIDO loads land? | Could be the actual landing zone for stage [2] ingestion. |
 
 ### 8.2 Connections & Dependencies
 
 | ID | Pri | Question | Why it matters |
 |---|---|---|---|
 | Q11 | P1 | Why does `Analysis/CBB/301069 Merchant Solution` call `/Users/priyanshi.chakraborty@td.com/GAML/GAMLConnections` instead of the shared `Configs/GAMLConnections`? Is there a functional difference, or is it leftover? | Determines whether user-folder GAML copies can be deleted or need to be merged into the shared version. |
-
-### 8.3 Scope Clarifications
-
-| ID | Pri | Question | Why it matters |
-|---|---|---|---|
-| Q18 | P2 | What does `700005 - centralized` mean (inside `Analysis/CBB/`)? Is this an AU centralised away from per-LOB processing? | If centralised, may be a candidate for the FY2026 `02_Transformations/Centralized/Regular/` folder. |
-| Q19 | P3 | `nmm_transactions-2025` lives in `LOBs/CPB(DIGITAL)/TRANSACT...`. What is this notebook, and why is it under `LOBs/` rather than `Analysis/`? | Helps answer Q1 about `LOBs/` purpose. |
-
-### 8.4 Cleanup Decisions (FY2026 Pre-Kickoff)
-
-| ID | Pri | Question | Why it matters |
-|---|---|---|---|
-| Q20 | P3 | Are these test/scratch folders still in use by anyone, or all abandoned? `TEST_GITHUB`, `Sample_writing_result_into_table`, `Bit_Bucket_check_in_check_out`, `TestDF_Do_Not_Delete_Siddharth and …`, `Triage test`, `Test_ACN`, `To Local`, `Self_Migration_Jobs`, `SCHEDULED_CHECKIN_JOB`, `SRZ_Tutorial`, `SRZ_Tutorial_IMS`, `TRX Visibility Main`. | Drives the `99_Sandbox/` consolidation in 4.7 step 6. |
 
 ---
 
