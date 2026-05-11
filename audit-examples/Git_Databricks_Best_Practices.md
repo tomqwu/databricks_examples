@@ -240,14 +240,15 @@ RAFY2026_CA/
 │   └── CDE_Registry/                    (RA_BUSINESS_CDEs)
 │
 ├── 01_Source_Ingestion/                 ← [2] source → CA AZ landing
-│   ├── Rahona_SRZ_to_ADLS/
+│   ├── Rahona_SRZ/                      ← SRZ → ADLS ingestion notebooks
+│   ├── Rahona_CZ/                       ← CZ → ADLS ingestion notebooks (e.g. CZ2ADLS 700005)
 │   └── ADIDO_Load/
 │
 ├── 02_Views/                            ← [3] stable read layer (RA_FY26_VIEW catalogue)
 │   └── [LOB-segmented views]            (centralized notebooks read multiple LOB views; per-AU notebooks read one)
 │
 ├── 03_Transformations/                  ← [4] business logic per metric (reads from 02_Views)
-│   ├── Centralized/                     ← one notebook per metric definition; aggregates LOB-specific sources
+│   ├── Centralized/                     ← one notebook per metric, cross-AU
 │   │   ├── Regular/                     ← ML/TF centralized metrics (LOB-differentiated sources, unified output)
 │   │   │   ├── M1.1_Unscored_View.ipynb
 │   │   │   └── M1.2_HRC_Tier12.ipynb
@@ -257,6 +258,7 @@ RAFY2026_CA/
 │   │       └── _shared/
 │   │           ├── abac_au_list.py      ← canonical 61-AU list
 │   │           └── abac_utils.py
+│   ├── Segment/                         ← grouping tier between Centralized and Per_AU (sub-populations / cross-AU groups)
 │   └── Per_AU/                          ← per-AU dev work (2–3 AUs / dev)
 │       ├── CBB/
 │       │   ├── AU_301069_Merchant_Solution/
@@ -278,7 +280,7 @@ RAFY2026_CA/
 
 - An auditor opens `00_Configs/` first to understand the schema, then walks down to `05_Outputs/` to see what was produced. The folder tree itself answers the audit question "where did the data come from and how did it become this number?".
 - Views (`02_Views/`) sit immediately after ingestion because transformations read from views, not raw snapshot tables. Putting Views before Transformations in the folder tree matches the actual data flow.
-- Per-AU (`Per_AU/`) and centralized notebooks (`Centralized/`, including ABAC) both sit under `03_Transformations/` because they are the same lineage stage — just different workload patterns. Centralized ≠ "single source"; it means "single notebook" that may aggregate LOB-segmented inputs.
+- The three transformation tiers — `Centralized/`, `Segment/`, and `Per_AU/` — all sit under `03_Transformations/` because they are the same lineage stage, just different workload scopes: cross-AU (Centralized), grouped sub-population (Segment), and single-AU (Per_AU). Centralized ≠ "single source"; it means "single notebook" that may aggregate LOB-segmented inputs.
 - DQ Checks have a clear home as a distinct lineage stage rather than being scattered inside transformation notebooks (though notebook-level DQ cells stay — see Section 5.4).
 
 ### 4.2 As-Is → To-Be Mapping
@@ -291,10 +293,12 @@ Each existing FY2025 location maps to a target FY2026 location. This is a reorga
 | `Configs/Create_*_Catalogue` | `00_Configs/Catalogues/` | Adhoc, Adido, Analysis, Snapshot, View catalogues all sit here. |
 | `Configs/RA_BUSINESS_CDEs` | `00_Configs/CDE_Registry/` | CDE registry. |
 | `Configs/Settings` | `00_Configs/Connections/Settings` | Constants and parameters; co-located with connections. |
-| `SRZ_TO_ADLS/[AU folder]/` | `01_Source_Ingestion/Rahona_SRZ_to_ADLS/[AU folder]/` | One folder per AU group (preserve current grouping like `CBB Credit(301486,301488)`). |
+| `SRZ_TO_ADLS/[AU folder]/` (SRZ notebooks) | `01_Source_Ingestion/Rahona_SRZ/[AU folder]/` | SRZ → ADLS ingestion only. Split out from current mixed folder (Tom Wu, May 2026). |
+| `SRZ_TO_ADLS/CZ2ADLS *` (CZ notebooks) | `01_Source_Ingestion/Rahona_CZ/[AU folder]/` | CZ → ADLS ingestion only. Currently mixed with SRZ ingestion in the FY2025 `SRZ_TO_ADLS/` folder; separated for FY2026 to reflect that Rahona has two distinct zones (Tom Wu, May 2026). |
 | `ADIDO_OUT/` (top-level, no landing zone) | `01_Source_Ingestion/ADIDO_Out/` | Distinct from ADIDO IN — only IN has a landing zone. Confirmed Tom Wu, May 2026. |
 | `Views/` | `02_Views/` | Renumbered to sit immediately after ingestion (Raghul, May 2026). Stable read layer over snapshot tables. |
 | `Centralized Data/[metric notebook]` | `03_Transformations/Centralized/Regular/M<#.#>_<Descriptor>.ipynb` | Rename to metric-prefixed convention. Reads multiple LOB-specific views from `02_Views/` and aggregates into a single cross-AU output (Raghul, May 2026 — ML/TF centralized metrics differ by LOB at the source level). |
+| *(new tier)* | `03_Transformations/Segment/` | New tier between Centralized and Per_AU (Tom Wu, May 2026). For transformations applied to a defined segment / sub-population / cross-AU grouping that is broader than a single AU but narrower than the full population. |
 | `Centralized Data/ABAC/eba0X.ipynb` *(moved here during FY2025 closeout)* | `03_Transformations/Centralized/ABAC/eba0X.ipynb` | Source location after the closeout move described in 3.2. FY2026 just preserves it under the new top-level naming. Adds `_shared/abac_au_list.py`. |
 | `Analysis/[LOB]/[AU notebook]` | `03_Transformations/Per_AU/[LOB]/AU_<code>_<Name>/M<#.#>_<au>.ipynb` | Single AU notebook splits into one notebook per metric inside an AU folder. AU-level analysis (incl. `700005 - centralized`, `nmm_transactions-2025`) reads from `02_Views/`. |
 | `Analysis/[LOB]/ABAC/ABAC <AU>` | (deprecated) | Decentralized historical work by individual devs in past cycles, not a canonical pattern. Replaced by `03_Transformations/Centralized/ABAC/eba0X.ipynb` covering all 61 ABAC AUs in one notebook per metric. |
@@ -593,8 +597,3 @@ Items that the author was unable to confirm from the FY2025 workspace alone. Eac
 | ID | Pri | Question | Why it matters |
 |---|---|---|---|
 | Q11 | P1 | Why does `Analysis/CBB/301069 Merchant Solution` call `/Users/priyanshi.chakraborty@td.com/GAML/GAMLConnections` instead of the shared `Configs/GAMLConnections`? Is there a functional difference, or is it leftover? | Determines whether user-folder GAML copies can be deleted or need to be merged into the shared version. |
-
----
-
-**Document Owner:** FCRM Enterprise Risk Assessment Reporting Team  
-**Effective:** April 2026  |  **Version:** 2.1  |  **Classification:** Internal
