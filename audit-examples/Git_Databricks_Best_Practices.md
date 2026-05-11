@@ -244,13 +244,14 @@ RAFY2026_CA/
 │   └── ADIDO_Load/
 │
 ├── 02_Views/                            ← [3] stable read layer (RA_FY26_VIEW catalogue)
+│   └── [LOB-segmented views]            (centralized notebooks read multiple LOB views; per-AU notebooks read one)
 │
 ├── 03_Transformations/                  ← [4] business logic per metric (reads from 02_Views)
-│   ├── Centralized/                     ← one query, many AUs
-│   │   ├── Regular/
+│   ├── Centralized/                     ← one notebook per metric definition; aggregates LOB-specific sources
+│   │   ├── Regular/                     ← ML/TF centralized metrics (LOB-differentiated sources, unified output)
 │   │   │   ├── M1.1_Unscored_View.ipynb
 │   │   │   └── M1.2_HRC_Tier12.ipynb
-│   │   └── ABAC/
+│   │   └── ABAC/                        ← always centralized across all 61 AUs (no LOB split, unified source)
 │   │       ├── eba01.ipynb
 │   │       ├── eba02.ipynb
 │   │       └── _shared/
@@ -269,11 +270,15 @@ RAFY2026_CA/
 └── 05_Outputs/                          ← [6] what feeds the Excel mastersheet
 ```
 
+> **Note (Raghul, May 2026):** ML/TF centralized metrics differ by LOB at the data-source level — the metric logic is centralized in one notebook, but the inputs come from LOB-specific views. The centralized notebook pattern is therefore: read multiple LOB-segmented views from `02_Views/`, apply the unified metric logic, then aggregate across LOBs into a single output.
+>
+> **Note (Tom Wu, May 2026):** ABAC centralized notebooks (`eba01`, `eba02`, …) are always centralized across all 61 AUs — no LOB differentiation at the source level. This is distinct from ML/TF Regular centralized notebooks above. ABAC reads a unified source against the canonical 61-AU list (`_shared/abac_au_list.py`) and produces a single output covering the full ABAC population.
+
 **Why lineage-aligned beats workload-aligned:**
 
 - An auditor opens `00_Configs/` first to understand the schema, then walks down to `05_Outputs/` to see what was produced. The folder tree itself answers the audit question "where did the data come from and how did it become this number?".
 - Views (`02_Views/`) sit immediately after ingestion because transformations read from views, not raw snapshot tables. Putting Views before Transformations in the folder tree matches the actual data flow.
-- Per-AU (`Per_AU/`) and one-query-many-AUs (`Centralized/`, including ABAC) both sit under `03_Transformations/` because they are the same lineage stage — just different workload patterns. The split is preserved as subfolders.
+- Per-AU (`Per_AU/`) and centralized notebooks (`Centralized/`, including ABAC) both sit under `03_Transformations/` because they are the same lineage stage — just different workload patterns. Centralized ≠ "single source"; it means "single notebook" that may aggregate LOB-segmented inputs.
 - DQ Checks have a clear home as a distinct lineage stage rather than being scattered inside transformation notebooks (though notebook-level DQ cells stay — see Section 5.4).
 
 ### 4.2 As-Is → To-Be Mapping
@@ -289,7 +294,7 @@ Each existing FY2025 location maps to a target FY2026 location. This is a reorga
 | `SRZ_TO_ADLS/[AU folder]/` | `01_Source_Ingestion/Rahona_SRZ_to_ADLS/[AU folder]/` | One folder per AU group (preserve current grouping like `CBB Credit(301486,301488)`). |
 | `ADIDO_OUT/` (top-level, no landing zone) | `01_Source_Ingestion/ADIDO_Out/` | Distinct from ADIDO IN — only IN has a landing zone. Confirmed Tom Wu, May 2026. |
 | `Views/` | `02_Views/` | Renumbered to sit immediately after ingestion (Raghul, May 2026). Stable read layer over snapshot tables. |
-| `Centralized Data/[metric notebook]` | `03_Transformations/Centralized/Regular/M<#.#>_<Descriptor>.ipynb` | Rename to metric-prefixed convention. |
+| `Centralized Data/[metric notebook]` | `03_Transformations/Centralized/Regular/M<#.#>_<Descriptor>.ipynb` | Rename to metric-prefixed convention. Reads multiple LOB-specific views from `02_Views/` and aggregates into a single cross-AU output (Raghul, May 2026 — ML/TF centralized metrics differ by LOB at the source level). |
 | `Centralized Data/ABAC/eba0X.ipynb` *(moved here during FY2025 closeout)* | `03_Transformations/Centralized/ABAC/eba0X.ipynb` | Source location after the closeout move described in 3.2. FY2026 just preserves it under the new top-level naming. Adds `_shared/abac_au_list.py`. |
 | `Analysis/[LOB]/[AU notebook]` | `03_Transformations/Per_AU/[LOB]/AU_<code>_<Name>/M<#.#>_<au>.ipynb` | Single AU notebook splits into one notebook per metric inside an AU folder. AU-level analysis (incl. `700005 - centralized`, `nmm_transactions-2025`) reads from `02_Views/`. |
 | `Analysis/[LOB]/ABAC/ABAC <AU>` | (deprecated) | Decentralized historical work by individual devs in past cycles, not a canonical pattern. Replaced by `03_Transformations/Centralized/ABAC/eba0X.ipynb` covering all 61 ABAC AUs in one notebook per metric. |
