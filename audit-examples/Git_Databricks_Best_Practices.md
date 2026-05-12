@@ -7,38 +7,30 @@
 | Document Title | Git & Databricks Notebook Best Practices |
 | Document Owner | FCRM Enterprise Risk Assessment Reporting Team |
 | Effective Date | April 2026 |
-| Version | 2.1 (supersedes v2.0). Lineage detail absorbed from FY2025 Databricks workspace screenshots. |
+| Version | 2.2 (supersedes v2.1). Restructured to lead with the As-Is and FY2026 folder trees. |
 | Target Audience | MCC Developers, Team Leads, 1LOD, 2LOD, Internal Audit |
 | Systems of Record | GitHub (`TD-Universe/RAFY2025_CA`) + Databricks + Jira (FY25 RA CYCLE - DATA) |
 
 ---
 
+---
+
 ## 1. Purpose
 
-This document defines the standards for writing, organising, and version-controlling Databricks notebooks and Git commits for the FCRM Risk Assessment cycle. It is structured around three time horizons:
+This document defines the standards for writing, organising, and version-controlling Databricks notebooks and Git commits for the FCRM Risk Assessment cycle. It opens with the two folder trees that matter most for design decisions, then provides supporting detail.
 
-- **Section 2 — Current Facts.** How the team is operating today (FY2025 cycle in progress).
-- **Section 3 — End-of-Cycle Recommendations.** What to do now to close the FY2025 audit window cleanly without disrupting in-flight work.
-- **Section 4 — Future Recommendations.** Structural and convention changes proposed for the FY2026 cycle.
-
-Sections 5–7 hold standards that carry across cycles, a checklist, and common mistakes. **Section 8 lists open questions** the author was unable to resolve from the workspace alone — these need team input before the FY2026 design can be locked.
+- **Sections 2–4** — the As-Is FY2025 folder tree, the proposed FY2026 lineage-aligned folder tree, and the line-by-line mapping between them. These are the structural lead.
+- **Section 5** — what to do now to close the FY2025 audit window cleanly without disrupting in-flight work.
+- **Section 6** — other current facts about the FY2025 cycle (environment, naming, workload, active constraints).
+- **Section 7** — FY2026 implementation detail (naming, JIRA hygiene, per-metric commits, ABAC handling, migration plan).
+- **Sections 8–10** — cycle-independent standards, a checklist, and common mistakes.
+- **Section 11** — open questions the author was unable to resolve from the workspace alone; these need team input before the FY2026 design can be locked.
 
 > **Governance rule** — All business logic decisions must be captured in Jira before work begins in Databricks. Unlogged changes are not authoritative and will be flagged as audit findings (Change Management SOP v1.1).
 
 ---
 
-## 2. Current Facts (FY2025 Cycle)
-
-This section describes how the MCC Team is actually operating today. It is the baseline against which both end-of-cycle and future recommendations are measured.
-
-### 2.1 Environment
-
-- **Databricks** is the single query environment — no DEV / PROD split. All work happens in one workspace.
-- **GitHub** (`TD-Universe/RAFY2025_CA`) is used **as an audit record only** — not for deployment. Final approved queries are pushed for traceability after mastersheet sign-off.
-- **Excel mastersheet** (SharePoint: `06 - Change Management / Evidence`) is the authoritative output record for FY2025 metric values.
-- **Source data**: Rahona (SRZ/CZ, 20 sources, pulled to CA AZ on 1 November 2025) and ADIDO (73 sources).
-
-### 2.2 Folder Structure (As-Is)
+## 2. Folder Structure — As-Is (FY2025)
 
 The Databricks workspace is at `Shared/RiskAssessment/FY_2025/` with the following layout (drawn from the actual workspace, not idealised):
 
@@ -140,80 +132,9 @@ Views (RA_FY25_VIEW catalogue) → Excel mastersheet
 - `Centralized Data/` is the existing precedent for "one notebook covers many AUs" — the closest current parallel to where ABAC should live.
 - `LOBs/` is a different (broader) tier than `Analysis/[LOB]/` and contains LOBs not in `Analysis/` (e.g., `CPB(DIGITAL)`, `GMI -TDAM`, `NIU`, `TDS & Cowen 2025`). Purpose to be confirmed with Team Leads.
 
-### 2.3 Naming and Commits (As-Is)
-
-| Item | Current Convention |
-|---|---|
-| Notebook filename | `[AU code] [AU name]` (e.g. `301069 Merchant Solution`) |
-| Commit message | `[FY25DATA-XXX] description` |
-| Branch | `dev/FY25DATA-XXX-description` |
-
-JIRA ticket IDs are embedded in commits as the audit trace anchor. Each ticket maps 1-to-1 to a (metric, AU) pair, but the metric ID and AU are currently captured **only in the ticket title** — they are not separate filterable fields or labels.
-
-### 2.4 Workload Distribution
-
-- **Regular metrics (WP-01 / 02 / 03)** — devs are assigned **2–3 AUs each** and write all metrics for those AUs.
-- **ABAC (WP-04)** — a single query covers **61 AUs** with the same logic. One developer can carry the full ABAC scope; per-LOB ABAC subfolders are largely redundant.
-
-### 2.5 Active Performance Constraint
-
-Following the **DaaS flag of 30 April 2026** — a nested SELECT on `caedw.acct_trans` caused a hanging process. The performance rules in Section 5.3 are mandatory and being enforced for the remainder of the cycle.
-
 ---
 
-## 3. End-of-Cycle Recommendations (FY2025 Audit Closeout)
-
-The audit window is short and the FY2025 cycle is mid-flight. **Do not restructure folders, rename notebooks, or change commit conventions during this window.** The recommendations below are closeout-only and additive.
-
-### 3.1 Do Not Disrupt
-
-| Action | Status |
-|---|---|
-| Restructure Databricks folders | ❌ Defer to FY2026 |
-| Rename notebooks (AU → metric-based) | ❌ Defer to FY2026 |
-| Change commit format (drop `FY25DATA-XXX`) | ❌ Defer to FY2026 |
-| Change branch naming | ❌ Defer to FY2026 |
-| Reorganise ABAC across LOB folders | ❌ Defer to FY2026 |
-| **Move user-folder ABAC notebooks (`eba01`, `eba02`) into shared `Centralized Data/ABAC/`** | ✅ **In scope for closeout** — see 3.2 |
-
-### 3.2 Closeout Checklist
-
-Before the audit window closes, every developer must complete the following:
-
-- [ ] **Push all final, PO APPROVED queries to GitHub.** Any query whose result is in the Excel mastersheet must have a corresponding Git commit.
-- [ ] **Complete notebook headers.** Fill in metric, ticket, owner, reviewer, last-updated date, and status (PO APPROVED) per the template in Section 5.1.
-- [ ] **Verify the DQ check cell exists in every notebook** — null check, record count, duplicate check, reconciliation numbers.
-- [ ] **Add a README to each LOB folder** listing the AUs in scope, the dev owner, and the final status of each metric.
-- [ ] **Verify commit messages carry the `[FY25DATA-XXX]` prefix.** No bare commits, no `WIP`, no `fix`.
-- [ ] **Tag the audit-close commit** on `main` with `audit-close-fy2025` for fast retrieval by reviewers.
-- [ ] **Move ABAC notebooks from user folder to shared workspace.** Source: `/Workspace/Users/qiang.wu@td.com/abac/`. Target: `Shared/RiskAssessment/FY_2025/Centralized Data/ABAC/`. Files: `eba01`, `eba02`, and any other `eba*` notebooks (each maps 1-to-1 to ABAC metrics M4.1, M4.2, …). The utility `00_CC_Mapping_Setup.ipynb` (a Python helper for creating reusable views) moves alongside, into `Centralized Data/ABAC/_shared/`. After the move, validate that all `%run` references inside the notebooks resolve correctly from the new path. Owner: **Qiang Wu**, with Tom Wu sign-off.
-
-### 3.3 Audit Trail Hardening
-
-- **Cross-reference.** For every metric in the Excel mastersheet, confirm there is (a) a Jira ticket in PO APPROVED state, and (b) a Git commit referencing that ticket ID. Any mismatch is an audit finding.
-- **Lock `main`.** No further commits to `main` after audit close without explicit Team Lead approval.
-- **Archive.** Export the key Databricks notebooks to SharePoint `06 - Change Management / Evidence` as a snapshot of the workspace at audit close.
-
-### 3.4 Known Gaps to Disclose
-
-The following are documented gaps for FY2025; **do not attempt to retroactively fix them this cycle** — they are inputs to Section 4.
-
-- JIRA tickets do not carry `metric:` or `au:` filter labels. Recovery is by title keyword search only, which is fragile.
-- ABAC duplication across `Analysis/[LOB]/ABAC/` subfolders means audit traversal of WP-04 requires opening multiple folders.
-- The single-notebook-per-AU pattern means commit history is **not** per-metric — a single commit can change logic for multiple metrics simultaneously.
-- **GAMLConnections is invoked inconsistently.** Some notebooks reach into a user folder (`/Workspace/Users/.../GAML/GAMLConnections`) instead of the shared `Configs/GAMLConnections`. To be standardised in FY2026.
-- **ABAC notebooks `eba01`, `eba02` were initially developed in `/Workspace/Users/qiang.wu@td.com/abac/`** rather than the shared workspace. **Resolved during this cycle:** moving to `Shared/RiskAssessment/FY_2025/Centralized Data/ABAC/` as part of audit closeout (see 3.2). This makes them visible in the shared tree before audit close.
-- **Heterogeneous folder/notebook naming** and **test folders mixed with production**. Cleanup deferred to FY2026 cycle kickoff.
-
----
-
-## 4. Future Recommendations (FY2026 Cycle)
-
-> **Status: lineage-aligned design confirmed against FY2025 workspace.** Section 4.1 maps each lineage stage to the actual notebooks observed in FY2025, so the FY2026 layout is a direct reorganisation of existing artifacts rather than a green-field design. Naming conventions (4.3), JIRA hygiene (4.4), per-metric commits (4.5), ABAC handling (4.6), and migration plan (4.7) are also based on observed patterns.
-
-The following changes should be agreed before FY2026 cycle kickoff. They are informed by FY2025 pain points and by the structural mismatch between regular and ABAC workloads.
-
-### 4.1 Lineage-Aligned Folder Structure
+## 3. Folder Structure — FY2026 Recommended
 
 **Design principle:** the folder structure should mirror the data lineage flow. An auditor tracing source → transformation → output should be able to walk the folder tree in the same order. This makes the workspace self-documenting and aligns directly with the V&QA SOP (Sujai) Step 2 (Data Quality Checks) and Step 6 (Output Verification).
 
@@ -281,9 +202,11 @@ RAFY2026_CA/
 - An auditor opens `00_Configs/` first to understand the schema, then walks down to `05_Outputs/` to see what was produced. The folder tree itself answers the audit question "where did the data come from and how did it become this number?".
 - Views (`02_Views/`) sit immediately after ingestion because transformations read from views, not raw snapshot tables. Putting Views before Transformations in the folder tree matches the actual data flow.
 - The three transformation tiers — `Centralized/`, `Segment/`, and `Per_AU/` — all sit under `03_Transformations/` because they are the same lineage stage, just different workload scopes: cross-AU (Centralized), grouped sub-population (Segment), and single-AU (Per_AU). Centralized ≠ "single source"; it means "single notebook" that may aggregate LOB-segmented inputs.
-- DQ Checks have a clear home as a distinct lineage stage rather than being scattered inside transformation notebooks (though notebook-level DQ cells stay — see Section 5.4).
+- DQ Checks have a clear home as a distinct lineage stage rather than being scattered inside transformation notebooks (though notebook-level DQ cells stay — see Section 8.4).
 
-### 4.2 As-Is → To-Be Mapping
+---
+
+## 4. As-Is → To-Be Mapping
 
 Each existing FY2025 location maps to a target FY2026 location. This is a reorganisation, not a rewrite — every artifact moves to a stage that reflects its lineage role.
 
@@ -299,7 +222,7 @@ Each existing FY2025 location maps to a target FY2026 location. This is a reorga
 | `Views/` | `02_Views/` | Renumbered to sit immediately after ingestion (Raghul, May 2026). Stable read layer over snapshot tables. |
 | `Centralized Data/[metric notebook]` | `03_Transformations/Centralized/Regular/M<#.#>_<Descriptor>.ipynb` | Rename to metric-prefixed convention. Reads multiple LOB-specific views from `02_Views/` and aggregates into a single cross-AU output (Raghul, May 2026 — ML/TF centralized metrics differ by LOB at the source level). |
 | *(new tier)* | `03_Transformations/Segment/` | New tier between Centralized and Per_AU (Tom Wu, May 2026). For transformations applied to a defined segment / sub-population / cross-AU grouping that is broader than a single AU but narrower than the full population. |
-| `Centralized Data/ABAC/eba0X.ipynb` *(moved here during FY2025 closeout)* | `03_Transformations/Centralized/ABAC/eba0X.ipynb` | Source location after the closeout move described in 3.2. FY2026 just preserves it under the new top-level naming. Adds `_shared/abac_au_list.py`. |
+| `Centralized Data/ABAC/eba0X.ipynb` *(moved here during FY2025 closeout)* | `03_Transformations/Centralized/ABAC/eba0X.ipynb` | Source location after the closeout move described in 5.2. FY2026 just preserves it under the new top-level naming. Adds `_shared/abac_au_list.py`. |
 | `Analysis/[LOB]/[AU notebook]` | `03_Transformations/Per_AU/[LOB]/AU_<code>_<Name>/M<#.#>_<au>.ipynb` | Single AU notebook splits into one notebook per metric inside an AU folder. AU-level analysis (incl. `700005 - centralized`, `nmm_transactions-2025`) reads from `02_Views/`. |
 | `Analysis/[LOB]/ABAC/ABAC <AU>` | (deprecated) | Decentralized historical work by individual devs in past cycles, not a canonical pattern. Replaced by `03_Transformations/Centralized/ABAC/eba0X.ipynb` covering all 61 ABAC AUs in one notebook per metric. |
 | `Data_Quality_Checks/Lobs/` | `04_DQ_Checks/Per_AU/[LOB]/` | Same pattern, renamed for consistency. |
@@ -309,7 +232,91 @@ Each existing FY2025 location maps to a target FY2026 location. This is a reorga
 | `TEST_GITHUB`, `Sample_writing_result_into_table`, `Bit_Bucket_check_in_check_out`, `TestDF_Do_Not_Delete…`, etc. | Delete | Confirmed not in use (Tom Wu, May 2026). Safe to delete during FY2026 cleanup. |
 | `BACKUP_FY_2024`, `FY_2023`, `FY_2024` | Archive outside the active workspace | Move to a separate archive workspace or repo. Not in active tree. |
 
-### 4.3 Unified Naming Convention
+---
+
+## 5. End-of-Cycle Recommendations (FY2025 Audit Closeout)
+
+The audit window is short and the FY2025 cycle is mid-flight. **Do not restructure folders, rename notebooks, or change commit conventions during this window.** The recommendations below are closeout-only and additive.
+
+### 5.1 Do Not Disrupt
+
+| Action | Status |
+|---|---|
+| Restructure Databricks folders | ❌ Defer to FY2026 |
+| Rename notebooks (AU → metric-based) | ❌ Defer to FY2026 |
+| Change commit format (drop `FY25DATA-XXX`) | ❌ Defer to FY2026 |
+| Change branch naming | ❌ Defer to FY2026 |
+| Reorganise ABAC across LOB folders | ❌ Defer to FY2026 |
+| **Move user-folder ABAC notebooks (`eba01`, `eba02`) into shared `Centralized Data/ABAC/`** | ✅ **In scope for closeout** — see 5.2 |
+
+### 5.2 Closeout Checklist
+
+Before the audit window closes, every developer must complete the following:
+
+- [ ] **Push all final, PO APPROVED queries to GitHub.** Any query whose result is in the Excel mastersheet must have a corresponding Git commit.
+- [ ] **Complete notebook headers.** Fill in metric, ticket, owner, reviewer, last-updated date, and status (PO APPROVED) per the template in Section 8.1.
+- [ ] **Verify the DQ check cell exists in every notebook** — null check, record count, duplicate check, reconciliation numbers.
+- [ ] **Add a README to each LOB folder** listing the AUs in scope, the dev owner, and the final status of each metric.
+- [ ] **Verify commit messages carry the `[FY25DATA-XXX]` prefix.** No bare commits, no `WIP`, no `fix`.
+- [ ] **Tag the audit-close commit** on `main` with `audit-close-fy2025` for fast retrieval by reviewers.
+- [ ] **Move ABAC notebooks from user folder to shared workspace.** Source: `/Workspace/Users/qiang.wu@td.com/abac/`. Target: `Shared/RiskAssessment/FY_2025/Centralized Data/ABAC/`. Files: `eba01`, `eba02`, and any other `eba*` notebooks (each maps 1-to-1 to ABAC metrics M4.1, M4.2, …). The utility `00_CC_Mapping_Setup.ipynb` (a Python helper for creating reusable views) moves alongside, into `Centralized Data/ABAC/_shared/`. After the move, validate that all `%run` references inside the notebooks resolve correctly from the new path. Owner: **Qiang Wu**, with Tom Wu sign-off.
+
+### 5.3 Audit Trail Hardening
+
+- **Cross-reference.** For every metric in the Excel mastersheet, confirm there is (a) a Jira ticket in PO APPROVED state, and (b) a Git commit referencing that ticket ID. Any mismatch is an audit finding.
+- **Lock `main`.** No further commits to `main` after audit close without explicit Team Lead approval.
+- **Archive.** Export the key Databricks notebooks to SharePoint `06 - Change Management / Evidence` as a snapshot of the workspace at audit close.
+
+### 5.4 Known Gaps to Disclose
+
+The following are documented gaps for FY2025; **do not attempt to retroactively fix them this cycle** — they are inputs to Sections 3–4 and 7.
+
+- JIRA tickets do not carry `metric:` or `au:` filter labels. Recovery is by title keyword search only, which is fragile.
+- ABAC duplication across `Analysis/[LOB]/ABAC/` subfolders means audit traversal of WP-04 requires opening multiple folders.
+- The single-notebook-per-AU pattern means commit history is **not** per-metric — a single commit can change logic for multiple metrics simultaneously.
+- **GAMLConnections is invoked inconsistently.** Some notebooks reach into a user folder (`/Workspace/Users/.../GAML/GAMLConnections`) instead of the shared `Configs/GAMLConnections`. To be standardised in FY2026.
+- **ABAC notebooks `eba01`, `eba02` were initially developed in `/Workspace/Users/qiang.wu@td.com/abac/`** rather than the shared workspace. **Resolved during this cycle:** moving to `Shared/RiskAssessment/FY_2025/Centralized Data/ABAC/` as part of audit closeout (see 5.2). This makes them visible in the shared tree before audit close.
+- **Heterogeneous folder/notebook naming** and **test folders mixed with production**. Cleanup deferred to FY2026 cycle kickoff.
+
+---
+
+## 6. Other Current Facts (FY2025 Cycle)
+
+This section describes how the MCC Team is actually operating today. It is the baseline against which both end-of-cycle and future recommendations are measured.
+
+### 6.1 Environment
+
+- **Databricks** is the single query environment — no DEV / PROD split. All work happens in one workspace.
+- **GitHub** (`TD-Universe/RAFY2025_CA`) is used **as an audit record only** — not for deployment. Final approved queries are pushed for traceability after mastersheet sign-off.
+- **Excel mastersheet** (SharePoint: `06 - Change Management / Evidence`) is the authoritative output record for FY2025 metric values.
+- **Source data**: Rahona (SRZ/CZ, 20 sources, pulled to CA AZ on 1 November 2025) and ADIDO (73 sources).
+
+### 6.2 Naming and Commits (As-Is)
+
+| Item | Current Convention |
+|---|---|
+| Notebook filename | `[AU code] [AU name]` (e.g. `301069 Merchant Solution`) |
+| Commit message | `[FY25DATA-XXX] description` |
+| Branch | `dev/FY25DATA-XXX-description` |
+
+JIRA ticket IDs are embedded in commits as the audit trace anchor. Each ticket maps 1-to-1 to a (metric, AU) pair, but the metric ID and AU are currently captured **only in the ticket title** — they are not separate filterable fields or labels.
+
+### 6.3 Workload Distribution
+
+- **Regular metrics (WP-01 / 02 / 03)** — devs are assigned **2–3 AUs each** and write all metrics for those AUs.
+- **ABAC (WP-04)** — a single query covers **61 AUs** with the same logic. One developer can carry the full ABAC scope; per-LOB ABAC subfolders are largely redundant.
+
+### 6.4 Active Performance Constraint
+
+Following the **DaaS flag of 30 April 2026** — a nested SELECT on `caedw.acct_trans` caused a hanging process. The performance rules in Section 8.3 are mandatory and being enforced for the remainder of the cycle.
+
+---
+
+## 7. FY2026 Implementation Detail
+
+> **Status: lineage-aligned design confirmed against FY2025 workspace.** Sections 3 and 4 above hold the target layout and as-is → to-be mapping. The subsections below cover naming, JIRA hygiene, per-metric commits, ABAC handling, and the migration plan.
+
+### 7.1 Unified Naming Convention
 
 A single convention applied at every level of the workspace and every Git artifact. The rules are designed so that a folder path or filename, read in isolation, tells the reader exactly what they are looking at.
 
@@ -351,9 +358,9 @@ A single convention applied at every level of the workspace and every Git artifa
 3. **`UPPERCASE` reserved for established acronyms** — LOBs (`CBB`, `CPB`), `ABAC`. Don't invent new uppercase tokens.
 4. **`AU_` prefix on AU folders** — self-documenting; no risk of mistaking `301069_Merchant_Solution` for a date or a ticket ID.
 5. **Type prefix in filenames** — `M` = metric, `eba` = ABAC. A file named `M1.1_301069.ipynb` is unambiguous on sight.
-6. **JIRA ticket IDs dropped from filenames, branches, and commits.** JIRA tickets are 1-to-1 with (metric, AU); embedding the ticket ID is redundant. Audit traceability moves to JIRA labels — see Section 4.4.
+6. **JIRA ticket IDs dropped from filenames, branches, and commits.** JIRA tickets are 1-to-1 with (metric, AU); embedding the ticket ID is redundant. Audit traceability moves to JIRA labels — see Section 7.2.
 
-### 4.4 JIRA Hygiene — Add Filterable Labels
+### 7.2 JIRA Hygiene — Add Filterable Labels
 
 To preserve audit traceability after dropping ticket IDs from commits, add two labels to every Jira ticket:
 
@@ -366,11 +373,11 @@ Audit recovery path becomes:
 
 Without these labels, recovery falls back to keyword search on ticket titles, which is fragile.
 
-### 4.5 Per-Metric Commits — Strict
+### 7.3 Per-Metric Commits — Strict
 
 One commit per (metric, AU) change. Never bundle two metric IDs in a single commit, even within the same AU folder. This is the structural reason for splitting AU-as-notebook into AU-as-folder-with-metric-notebooks.
 
-### 4.6 ABAC Special Handling
+### 7.4 ABAC Special Handling
 
 - One notebook per ABAC metric. **`eba01` = M4.1, `eba02` = M4.2, …** through M4.22 — clean 1-to-1 mapping with the ABAC metric definitions.
 - Each notebook iterates over the **canonical 61-AU list** (broader population than the 35-AU base used elsewhere in the cycle).
@@ -379,13 +386,13 @@ One commit per (metric, AU) change. Never bundle two metric IDs in a single comm
 - `_shared/00_CC_Mapping_Setup.ipynb` (or `.py` once converted) — utility for creating reusable views, dependency of the `eba0X` notebooks.
 - `README.md` in `03_Transformations/Centralized/ABAC/` carries the eba# → M4.x mapping table for auditors.
 
-### 4.7 Migration Plan (Pre-FY2026 Kickoff)
+### 7.5 Migration Plan (Pre-FY2026 Kickoff)
 
 1. **Confirm `LOBs/` purpose** with Team Leads — keep as reference tier (`06_LOB_Reference/`) or merge into `03_Transformations/Per_AU/`.
 2. **Lock the lineage-aligned structure** with Team Leads and 1LOD before cycle kickoff.
 3. **Pre-create** the `RAFY2026_CA` repository and seed the folder skeleton matching the six lineage stages.
 4. **Standardise `GAMLConnections` invocations.** Inventory every notebook that calls `GAMLConnections`, replace any user-folder paths (`/Workspace/Users/.../GAML/GAMLConnections`) with the shared path. Going forward, only the shared path is permitted; user-folder copies should be deleted.
-5. **ABAC notebooks already in shared workspace** at `Centralized Data/ABAC/` (moved during FY2025 closeout — see 3.2). FY2026 step is just renaming under the new lineage stage `03_Transformations/Centralized/ABAC/`.
+5. **ABAC notebooks already in shared workspace** at `Centralized Data/ABAC/` (moved during FY2025 closeout — see 5.2). FY2026 step is just renaming under the new lineage stage `03_Transformations/Centralized/ABAC/`.
 6. **Delete test / scratch folders** (`TEST_GITHUB`, `Sample_writing_result_into_table`, `Bit_Bucket_check_in_check_out`, `TestDF_Do_Not_Delete…`, redundant `SAS_DATA_LOAD`) — confirmed not in use (Tom Wu, May 2026). Archive `BACKUP_FY_2024`, `FY_2023`, `FY_2024`, and `RA_CDE_DQ_CHECKS` (FY2024 legacy) outside the active workspace.
 7. **Migrate** the canonical 61-AU list and shared utilities into `03_Transformations/Centralized/ABAC/_shared/` so all ABAC notebooks import a single source.
 8. **Apply Jira labels retroactively** to a sample of FY2025 tickets to validate the filter recovery path before going live.
@@ -393,11 +400,11 @@ One commit per (metric, AU) change. Never bundle two metric IDs in a single comm
 
 ---
 
-## 5. Standards Carried Forward (Cycle-Independent)
+## 8. Standards Carried Forward (Cycle-Independent)
 
 These standards apply in both FY2025 and FY2026 cycles. They are technical hygiene that does not depend on folder structure or naming conventions.
 
-### 5.1 Notebook Header (Mandatory)
+### 8.1 Notebook Header (Mandatory)
 
 Every notebook must start with a header cell:
 
@@ -426,29 +433,29 @@ Every notebook must start with a header cell:
 
 The header is audit evidence. An auditor reading the notebook must immediately understand what it does, who approved it, and where the output goes.
 
-### 5.2 Notebook Structure
+### 8.2 Notebook Structure
 
 Organise every notebook into clearly labelled cells:
 
 | Cell | Purpose |
 |---|---|
-| 1 | Header & Metadata (see 5.1) |
+| 1 | Header & Metadata (see 8.1) |
 | 2 | Imports & Configuration (constants at top) |
 | 3 | `[LINEAGE]` Source Definition — source system, fields used, pull date |
 | 4 | Data Extraction — pull only from sources defined in cell 3 |
 | 5 | `[LINEAGE]` Business Logic & Transformations — every filter and rule documented |
-| 6 | Data Quality Checks (see 5.4) |
+| 6 | Data Quality Checks (see 8.4) |
 | 7 | `[LINEAGE]` Output Definition — output table, downstream consumers |
 | 8 | Write to CA AZ |
 | 9 | Reconciliation Summary — print Dev Team count for BA reconciliation |
 
 The three `[LINEAGE]` cells are the foundation for formal lineage documentation. Writing them clearly means lineage docs can be generated from the notebook without re-investigation.
 
-### 5.3 Performance Rules (Mandatory)
+### 8.3 Performance Rules (Mandatory)
 
 Following the DaaS flag of 30 April 2026.
 
-#### 5.3.1 No Unnecessary Nested SELECTs
+#### 8.3.1 No Unnecessary Nested SELECTs
 
 ```sql
 -- ✅ Do
@@ -466,11 +473,11 @@ FROM (
 ) WHERE post_dt < '2026-05-01'
 ```
 
-#### 5.3.2 Only SELECT Columns You Need
+#### 8.3.2 Only SELECT Columns You Need
 
 Never `SELECT *` on large tables. List only the columns the metric requires.
 
-#### 5.3.3 Always Filter on Partition Keys First
+#### 8.3.3 Always Filter on Partition Keys First
 
 ```sql
 -- ✅ Do — partition (post_dt) first
@@ -483,7 +490,7 @@ WHERE trans_type_id = 'XYZ'
   AND post_dt >= '2025-11-01'
 ```
 
-#### 5.3.4 Cache Intermediate Results When Reused
+#### 8.3.4 Cache Intermediate Results When Reused
 
 ```python
 base_df = spark.sql("""
@@ -497,11 +504,11 @@ metric_1 = base_df.filter(F.col('chanel_mn') == 'BRANCH')
 metric_2 = base_df.filter(F.col('chanel_mn') == 'ATM')
 ```
 
-#### 5.3.5 Test on a Sample Before Full Run
+#### 8.3.5 Test on a Sample Before Full Run
 
 Add `.limit(1000)` during development. Remove before final run.
 
-### 5.4 Data Quality Check Cell (Mandatory)
+### 8.4 Data Quality Check Cell (Mandatory)
 
 Every notebook must include a DQ check cell before writing output. This is the evidence for V&QA Step 2 (Data Quality Checks).
 
@@ -532,7 +539,7 @@ print(f'Date range: 2025-11-01 to 2026-04-30')
 print(f'Source: caedw.acct_trans')
 ```
 
-### 5.5 What NOT to Commit
+### 8.5 What NOT to Commit
 
 > Never commit credentials, passwords, connection strings, or personal access tokens. Never commit raw data files or query output files. These belong only in CA AZ or Databricks.
 
@@ -544,7 +551,7 @@ print(f'Source: caedw.acct_trans')
 
 ---
 
-## 6. Quick Reference Checklist
+## 9. Quick Reference Checklist
 
 Before pushing to Git and updating the mastersheet:
 
@@ -564,7 +571,7 @@ Before pushing to Git and updating the mastersheet:
 
 ---
 
-## 7. Common Mistakes & Fixes
+## 10. Common Mistakes & Fixes
 
 | Mistake | Impact | Fix |
 |---|---|---|
@@ -581,19 +588,21 @@ Before pushing to Git and updating the mastersheet:
 
 ---
 
-## 8. Open Questions for Team Resolution
+## 11. Open Questions for Team Resolution
 
 Items that the author was unable to confirm from the FY2025 workspace alone. Each is tagged by priority. Resolving the **P1** items is a prerequisite for locking the FY2026 design; **P2** sharpens audit narrative; **P3** is cleanup-grade.
 
-### 8.1 Workspace Organisation
+### 11.1 Workspace Organisation
 
 | ID | Pri | Question | Why it matters |
 |---|---|---|---|
-| Q1 | P1 | What is the purpose of `LOBs/` (top-level) versus `Analysis/[LOB]/`? They have overlapping but non-identical LOB lists. | Determines whether `LOBs/` is a reference tier, alternate transformation tier, or duplication. Drives Section 4.1 layout. |
+| Q1 | P1 | What is the purpose of `LOBs/` (top-level) versus `Analysis/[LOB]/`? They have overlapping but non-identical LOB lists. | Determines whether `LOBs/` is a reference tier, alternate transformation tier, or duplication. Drives Section 3 layout. |
 | Q3 | P2 | `SAS_DATA_LOAD` appears at two levels (top-level under `RiskAssessment` and inside `FY_2025`). Both active? Which is canonical? | Affects archive vs delete decision. |
 
-### 8.2 Connections & Dependencies
+### 11.2 Connections & Dependencies
 
 | ID | Pri | Question | Why it matters |
 |---|---|---|---|
 | Q11 | P1 | Why does `Analysis/CBB/301069 Merchant Solution` call `/Users/priyanshi.chakraborty@td.com/GAML/GAMLConnections` instead of the shared `Configs/GAMLConnections`? Is there a functional difference, or is it leftover? | Determines whether user-folder GAML copies can be deleted or need to be merged into the shared version. |
+
+---
