@@ -7,7 +7,7 @@
 | Document Title | Git & Databricks Notebook Best Practices |
 | Document Owner | FCRM Enterprise Risk Assessment Reporting Team |
 | Effective Date | April 2026 |
-| Version | 2.5 (supersedes v2.4). Reframed Sections 3, 4, 7 and related references: the new separate workspace is for the **FY2025** cycle (`RA_FY2025_CA`), not a future FY2026 plan. |
+| Version | 2.6 (supersedes v2.5). Expanded §8.4 with the 95% DQ-threshold recommendation and six worked examples (completeness, per-field, output gating, SQL, reusable helper) for developers to follow. |
 | Target Audience | MCC Developers, Team Leads, 1LOD, 2LOD, Internal Audit |
 | Systems of Record | GitHub (`TD-Universe/RAFY2025_CA`) + Databricks + Jira (FY25 RA CYCLE - DATA) |
 
@@ -480,31 +480,126 @@ Add `.limit(1000)` during development. Remove before final run.
 
 Every notebook must include a DQ check cell before writing output. This is the evidence for V&QA Step 2 (Data Quality Checks).
 
+#### 8.4.1 The 95% Threshold — Recommendation
+
+The Inherent Risk constraint is: *data quality < 95% and not provided by business → Inherent Risk factor = "Not Available"* (Audit Summary §2.3). To make this implementable and consistent across developers:
+
+1. **Define the 95% as two separate gates**, because "data quality" is ambiguous on its own:
+   - **Completeness** — ≥ 95% of records in the AU population have all critical fields populated and valid.
+   - **Accuracy / reconciliation** — Dev output reconciles to the source or BA-provided number within ±5% (i.e. ≥ 95% match).
+2. **Set the threshold as a single constant** at the top of the notebook — `DQ_THRESHOLD = 0.95`. Never hardcode `0.95` in the middle of logic.
+3. **Fail loud.** Print the exact percentage and an explicit `PASS` / `FAIL`. The printed cell output is the audit evidence — an auditor should see the number, not infer it.
+4. **On FAIL (< 95%):** do not write output silently. Stop, print the shortfall, and route to the NOT AVAILABLE / risk-acceptance path (Governance §5.4 Step 7) so the AU gets the higher risk rating rather than a suppressed value.
+
+> **Source note:** the controlling policy behind the 95% figure is still being traced (it carries forward from Audit Summary v1.2 and is not in the V&QA SOP). Implement against `DQ_THRESHOLD = 0.95` now; if the authoritative policy specifies a different number, only the one constant changes.
+
+#### 8.4.2 Base DQ Check Cell (PySpark)
+
 ```python
 # =============================================================
 # DATA QUALITY CHECKS — [Metric / AU]
 # =============================================================
+DQ_THRESHOLD = 0.95          # single source of truth — do not hardcode elsewhere
+CRITICAL_FIELDS = ['acct_id', 'trans_am', 'post_dt']
+
 print('=== DQ CHECK RESULTS ===')
 
-# 1. Completeness — no null critical fields
-null_check = result_df.filter(
-    F.col('acct_id').isNull() | F.col('trans_am').isNull()
-).count()
-print(f'Null critical fields: {null_check}  (expected: 0)')
-
-# 2. Record count
+# 1. Record count
 total = result_df.count()
 print(f'Total records: {total}')
+
+# 2. Completeness — % of records with ALL critical fields populated
+complete = result_df.dropna(subset=CRITICAL_FIELDS).count()
+completeness = complete / total if total else 0
+print(f'Completeness: {completeness:.2%}  (threshold: {DQ_THRESHOLD:.0%})  '
+      f'{"PASS" if completeness >= DQ_THRESHOLD else "FAIL"}')
 
 # 3. Duplicate check
 dupes = total - result_df.dropDuplicates(['acct_id']).count()
 print(f'Duplicate acct_ids: {dupes}  (expected: 0)')
 
-# 4. Reconciliation summary (for BA comparison)
-print('--- RECONCILIATION NUMBERS ---')
-print(f'Dev Team count: {total}')
-print(f'Date range: 2025-11-01 to 2026-04-30')
-print(f'Source: caedw.acct_trans')
+# 4. Reconciliation vs BA-provided number (±5% tolerance = 95% match)
+ba_count = 12450             # BA-provided expected count for this AU
+variance = abs(total - ba_count) / ba_count if ba_count else 1
+print(f'Reconciliation variance: {variance:.2%}  (tolerance: {1-DQ_THRESHOLD:.0%})  '
+      f'{"PASS" if variance <= (1 - DQ_THRESHOLD) else "FAIL"}')
+```
+
+#### 8.4.3 Per-Field Completeness Breakdown (PySpark)
+
+When overall completeness fails, this shows which field is dragging the score down — so you know exactly what to fix or escalate.
+
+```python
+print('=== PER-FIELD COMPLETENESS ===')
+for field in CRITICAL_FIELDS:
+    populated = result_df.filter(F.col(field).isNotNull()).count()
+    pct = populated / total if total else 0
+    flag = 'PASS' if pct >= DQ_THRESHOLD else 'FAIL'
+    print(f'  {field:<20} {pct:6.2%}   {flag}')
+```
+
+#### 8.4.4 Gate the Output Write on the Threshold (PySpark)
+
+The check should *block* the write, not just report. This is what turns the 95% into an actual control.
+
+```python
+if completeness >= DQ_THRESHOLD and variance <= (1 - DQ_THRESHOLD):
+    result_df.write.mode('overwrite').saveAsTable(CA_AZ_OUTPUT_TABLE)
+    print(f'DQ PASSED — output written to {CA_AZ_OUTPUT_TABLE}')
+else:
+    print('DQ FAILED — output NOT written.')
+    print(f'  Completeness {completeness:.2%}, Reconciliation variance {variance:.2%}')
+    print('  Action: route to NOT AVAILABLE / risk acceptance (Governance §5.4 Step 7).')
+    print('  Do not manually override — raise a RAID log entry and a BLOCKED Jira ticket.')
+```
+
+#### 8.4.5 SQL Equivalent (for `_QUERIES.sql` in the new workspace)
+
+The same completeness gate expressed in SQL, for the `Final_query_LOBS/` query files.
+
+```sql
+-- DQ: completeness check against the 95% threshold
+SELECT
+    COUNT(*)                                                AS total_records,
+    SUM(CASE WHEN acct_id IS NOT NULL
+              AND trans_am IS NOT NULL
+              AND post_dt  IS NOT NULL
+             THEN 1 ELSE 0 END)                             AS complete_records,
+    ROUND(
+        SUM(CASE WHEN acct_id IS NOT NULL
+                  AND trans_am IS NOT NULL
+                  AND post_dt  IS NOT NULL
+                 THEN 1 ELSE 0 END) * 1.0 / COUNT(*),
+    4)                                                      AS completeness_ratio,
+    CASE WHEN SUM(CASE WHEN acct_id IS NOT NULL
+                        AND trans_am IS NOT NULL
+                        AND post_dt  IS NOT NULL
+                       THEN 1 ELSE 0 END) * 1.0 / COUNT(*) >= 0.95
+         THEN 'PASS' ELSE 'FAIL' END                        AS dq_status
+FROM ra_fy_2025.<segment>_<auid>_output;
+```
+
+#### 8.4.6 Reusable Helper (optional, for `_shared/`)
+
+To keep the threshold and logic identical across all notebooks, factor it into one shared function rather than copy-pasting the cell.
+
+```python
+# _shared/dq_utils.py
+DQ_THRESHOLD = 0.95
+
+def check_completeness(df, critical_fields, threshold=DQ_THRESHOLD):
+    total = df.count()
+    if total == 0:
+        return 0.0, 'FAIL'
+    complete = df.dropna(subset=critical_fields).count()
+    ratio = complete / total
+    return ratio, ('PASS' if ratio >= threshold else 'FAIL')
+
+def check_reconciliation(dev_count, ba_count, threshold=DQ_THRESHOLD):
+    if ba_count == 0:
+        return 1.0, 'FAIL'
+    variance = abs(dev_count - ba_count) / ba_count
+    return variance, ('PASS' if variance <= (1 - threshold) else 'FAIL')
 ```
 
 ### 8.5 What NOT to Commit
@@ -530,7 +625,8 @@ Before pushing to Git and updating the mastersheet:
 | No nested SELECTs | Query is flat — no unnecessary subqueries |
 | Only needed columns | `SELECT` lists only the columns the metric requires |
 | Partition filter first | `WHERE` clause starts with date / partition filter |
-| DQ check cell | Null, record count, duplicate, reconciliation numbers all printed |
+| DQ check cell | Completeness % and reconciliation variance printed with explicit PASS/FAIL against the 95% threshold (see §8.4) |
+| DQ threshold gate | If completeness < 95% or reconciliation variance > 5%, output NOT written — routed to NOT AVAILABLE / risk acceptance |
 | Output confirmed | CA AZ table write confirmed; record count matches expectation |
 | Mastersheet updated | Results in correct rows / columns of Excel mastersheet |
 | Reviewer sign-off | Independent reviewer has confirmed mastersheet entries |
