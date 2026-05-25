@@ -7,7 +7,7 @@
 | Document Title | Git & Databricks Notebook Best Practices |
 | Document Owner | FCRM Enterprise Risk Assessment Reporting Team |
 | Effective Date | April 2026 |
-| Version | 2.6 (supersedes v2.5). Expanded §8.4 with the 95% DQ-threshold recommendation and six worked examples (completeness, per-field, output gating, SQL, reusable helper) for developers to follow. |
+| Version | 2.7 (supersedes v2.6). §8.4 rewritten around the team's existing DQ availability pattern (`availability_pct = 100*NNNBV/total`, `insertDQTable`, `cde_da_by_lob_segment`) instead of generic examples; 95% threshold applied to `AVAILABILITY_PCT`. |
 | Target Audience | MCC Developers, Team Leads, 1LOD, 2LOD, Internal Audit |
 | Systems of Record | GitHub (`TD-Universe/RAFY2025_CA`) + Databricks + Jira (FY25 RA CYCLE - DATA) |
 
@@ -476,130 +476,108 @@ metric_2 = base_df.filter(F.col('chanel_mn') == 'ATM')
 
 Add `.limit(1000)` during development. Remove before final run.
 
-### 8.4 Data Quality Check Cell (Mandatory)
+### 8.4 Data Quality Check — Established Availability Pattern
 
-Every notebook must include a DQ check cell before writing output. This is the evidence for V&QA Step 2 (Data Quality Checks).
+Most metric notebooks already implement DQ through a shared **availability-percentage** pattern: each CDE / data element is measured for how many records carry a real (non-null, non-blank) value, and the percentage is written to a central DQ table. The 95% threshold applies directly to that `AVAILABILITY_PCT`. This is the team's existing convention — new notebooks should follow it, not reinvent it.
 
-#### 8.4.1 The 95% Threshold — Recommendation
+#### 8.4.1 How It Works
 
-The Inherent Risk constraint is: *data quality < 95% and not provided by business → Inherent Risk factor = "Not Available"* (Audit Summary §2.3). To make this implementable and consistent across developers:
+1. For a given `data_element`, compute `availability_pct = round(100 * NNNBV / total, 2)`, where:
+   - `total` = `count(1)` over the AU/source population
+   - `NNNBV` ("Not Null, Not Blank Value") = count of rows where the cast field `is not null` **and** `<> ''`
+2. Call `insertDQTable(...)` to append the result to the central DQ table `<SNAPSHOT_CATALOGUE>.cde_da_by_lob_segment`.
+3. Apply the **95% threshold** to `AVAILABILITY_PCT`: ≥ 95 passes; < 95 routes the CDE to NOT AVAILABLE / risk acceptance (Governance §5.4 Step 7). In the current data, values like `93.41` are below threshold and would be flagged.
 
-1. **Define the 95% as two separate gates**, because "data quality" is ambiguous on its own:
-   - **Completeness** — ≥ 95% of records in the AU population have all critical fields populated and valid.
-   - **Accuracy / reconciliation** — Dev output reconciles to the source or BA-provided number within ±5% (i.e. ≥ 95% match).
-2. **Set the threshold as a single constant** at the top of the notebook — `DQ_THRESHOLD = 0.95`. Never hardcode `0.95` in the middle of logic.
-3. **Fail loud.** Print the exact percentage and an explicit `PASS` / `FAIL`. The printed cell output is the audit evidence — an auditor should see the number, not infer it.
-4. **On FAIL (< 95%):** do not write output silently. Stop, print the shortfall, and route to the NOT AVAILABLE / risk-acceptance path (Governance §5.4 Step 7) so the AU gets the higher risk rating rather than a suppressed value.
+> **Source note:** the controlling policy behind the 95% figure is still being traced (it carries forward from Audit Summary v1.2 and is not in the V&QA SOP). The pattern below is policy-agnostic — only the comparison constant changes if the authoritative number differs.
 
-> **Source note:** the controlling policy behind the 95% figure is still being traced (it carries forward from Audit Summary v1.2 and is not in the V&QA SOP). Implement against `DQ_THRESHOLD = 0.95` now; if the authoritative policy specifies a different number, only the one constant changes.
-
-#### 8.4.2 Base DQ Check Cell (PySpark)
+#### 8.4.2 Availability Computation (existing pattern)
 
 ```python
-# =============================================================
-# DATA QUALITY CHECKS — [Metric / AU]
-# =============================================================
-DQ_THRESHOLD = 0.95          # single source of truth — do not hardcode elsewhere
-CRITICAL_FIELDS = ['acct_id', 'trans_am', 'post_dt']
+cde_no         = "1.1,1.2,1.2A,1.3,1.9,1.9A"
+lob_id         = "101522"
+lob_desc       = "TD General Insurance"
+source         = "CZ"
+src_table_name = "catdigi_px_df40tdds.tdds_bp_active_policies_history"
+data_element   = "acc_account_no"
+cast_col_name  = "cast(`" + data_element + "` as STRING)"
 
-print('=== DQ CHECK RESULTS ===')
+# data_quality = 100 * (not-null-not-blank count) / total
+query = '''select data_quality from
+  (select round(100*NNNBV/total, 2) as data_quality from
+    (select count(1) AS total,
+            count(''' + cast_col_name + ''') as present,
+            count(case when ''' + cast_col_name + ''' is not null
+                        and ''' + cast_col_name + ''' <> ''
+                       then 1 end) NNNBV
+     from <source_view>
+     where <as_of_filters>)) '''
 
-# 1. Record count
-total = result_df.count()
-print(f'Total records: {total}')
+data = spark.sql(query)
+df   = data.toPandas()
+availability_pct = df['data_quality'].values[0]
 
-# 2. Completeness — % of records with ALL critical fields populated
-complete = result_df.dropna(subset=CRITICAL_FIELDS).count()
-completeness = complete / total if total else 0
-print(f'Completeness: {completeness:.2%}  (threshold: {DQ_THRESHOLD:.0%})  '
-      f'{"PASS" if completeness >= DQ_THRESHOLD else "FAIL"}')
-
-# 3. Duplicate check
-dupes = total - result_df.dropDuplicates(['acct_id']).count()
-print(f'Duplicate acct_ids: {dupes}  (expected: 0)')
-
-# 4. Reconciliation vs BA-provided number (±5% tolerance = 95% match)
-ba_count = 12450             # BA-provided expected count for this AU
-variance = abs(total - ba_count) / ba_count if ba_count else 1
-print(f'Reconciliation variance: {variance:.2%}  (tolerance: {1-DQ_THRESHOLD:.0%})  '
-      f'{"PASS" if variance <= (1 - DQ_THRESHOLD) else "FAIL"}')
+insertDQTable(SNAPSHOT_CATALOGUE_NAME, TABLE_NAME_DATA_AVA_SEG,
+              lob_id, lob_desc, cde_no, source, src_table_name,
+              data_element, availability_pct, today_date)
 ```
 
-#### 8.4.3 Per-Field Completeness Breakdown (PySpark)
+> Keep the `<source_view>` and `<as_of_filters>` current to the cycle. The reference query above still points at a prior-cycle view / as-of date in some notebooks — confirm each notebook reads the current RA cycle's source before relying on its `availability_pct`.
 
-When overall completeness fails, this shows which field is dragging the score down — so you know exactly what to fix or escalate.
+#### 8.4.3 The `insertDQTable` Helper (existing)
 
 ```python
-print('=== PER-FIELD COMPLETENESS ===')
-for field in CRITICAL_FIELDS:
-    populated = result_df.filter(F.col(field).isNotNull()).count()
-    pct = populated / total if total else 0
-    flag = 'PASS' if pct >= DQ_THRESHOLD else 'FAIL'
-    print(f'  {field:<20} {pct:6.2%}   {flag}')
+def insertDQTable(SNAPSHOT_CATALOGUE_NAME, TABLE_NAME_DATA_AVA_SEG,
+                  lob_id, cde_no, cde_desc, source, src_table_name,
+                  data_element, availability_pct, today_date):
+    query_1 = " insert into " + SNAPSHOT_CATALOGUE_NAME + "." + TABLE_NAME_DATA_AVA_SEG + " values("
+    query_2 = ("'" + lob_id + "','" + cde_no + "','" + cde_desc + "','" + source
+               + "','" + src_table_name + "','" + data_element
+               + "','" + str(availability_pct) + "','" + today_date + "')")
+    query = query_1 + query_2
+    # print(query)
+    spark.sql(query)
+    return True
 ```
 
-#### 8.4.4 Gate the Output Write on the Threshold (PySpark)
+> **Worth a quick check (audit-minded):** the helper's parameter order is `(… lob_id, cde_no, cde_desc, source …)` but the call site passes `(… lob_id, lob_desc, cde_no, source …)`. If that ordering is real and not a photo artefact, `cde_no` and `cde_desc` land in swapped columns. Confirm the argument order matches the table column order before this becomes the standard — a swap here would misattribute every DQ row.
 
-The check should *block* the write, not just report. This is what turns the 95% into an actual control.
+#### 8.4.4 Central DQ Table
+
+The results accumulate in one table that becomes the V&QA Step 2 evidence — no per-notebook output files needed.
+
+| Column | Meaning |
+|---|---|
+| `LOB_ID` | Assessable Unit / LOB identifier (e.g. `101522`) |
+| `LOB_DESC` | LOB description (e.g. `TD General Insurance`) |
+| `CDE_NO` | CDE number(s) the row covers |
+| `SOURCE` | `CZ`, `SRZ`, ADIDO, etc. |
+| `SRC_TABLE_NAME` | Source table / view measured |
+| `DATA_ELEMENT` | Field whose availability is measured |
+| `AVAILABILITY_PCT` | `round(100 * NNNBV / total, 2)` — the DQ measure the 95% threshold applies to |
+| `today_date` | Run date — gives the table a time series across runs |
+
+Catalogue / table: `RA_FY_2025.cde_da_by_lob_segment` (via `SNAPSHOT_CATALOGUE_NAME` + `TABLE_NAME_DATA_AVA_SEG`). Created by the `Create_Data_Ava_Table_Segment` / `Create_Data_Quality_Table_Entrps_Data` notebooks.
+
+#### 8.4.5 Applying the 95% Threshold
 
 ```python
-if completeness >= DQ_THRESHOLD and variance <= (1 - DQ_THRESHOLD):
-    result_df.write.mode('overwrite').saveAsTable(CA_AZ_OUTPUT_TABLE)
-    print(f'DQ PASSED — output written to {CA_AZ_OUTPUT_TABLE}')
+DQ_THRESHOLD = 95.0   # AVAILABILITY_PCT is on a 0–100 scale (not 0–1)
+
+if availability_pct >= DQ_THRESHOLD:
+    print(f'DQ PASS — {data_element}: {availability_pct}%  (>= {DQ_THRESHOLD}%)')
 else:
-    print('DQ FAILED — output NOT written.')
-    print(f'  Completeness {completeness:.2%}, Reconciliation variance {variance:.2%}')
-    print('  Action: route to NOT AVAILABLE / risk acceptance (Governance §5.4 Step 7).')
-    print('  Do not manually override — raise a RAID log entry and a BLOCKED Jira ticket.')
+    print(f'DQ FAIL — {data_element}: {availability_pct}%  (< {DQ_THRESHOLD}%)')
+    print('  Action: route CDE to NOT AVAILABLE / risk acceptance (Governance §5.4 Step 7).')
+    print('  Do not silently proceed — raise a RAID log entry + BLOCKED Jira ticket.')
 ```
 
-#### 8.4.5 SQL Equivalent (for `_QUERIES.sql` in the new workspace)
-
-The same completeness gate expressed in SQL, for the `Final_query_LOBS/` query files.
+To find every CDE below threshold across the whole cycle, query the central table directly:
 
 ```sql
--- DQ: completeness check against the 95% threshold
-SELECT
-    COUNT(*)                                                AS total_records,
-    SUM(CASE WHEN acct_id IS NOT NULL
-              AND trans_am IS NOT NULL
-              AND post_dt  IS NOT NULL
-             THEN 1 ELSE 0 END)                             AS complete_records,
-    ROUND(
-        SUM(CASE WHEN acct_id IS NOT NULL
-                  AND trans_am IS NOT NULL
-                  AND post_dt  IS NOT NULL
-                 THEN 1 ELSE 0 END) * 1.0 / COUNT(*),
-    4)                                                      AS completeness_ratio,
-    CASE WHEN SUM(CASE WHEN acct_id IS NOT NULL
-                        AND trans_am IS NOT NULL
-                        AND post_dt  IS NOT NULL
-                       THEN 1 ELSE 0 END) * 1.0 / COUNT(*) >= 0.95
-         THEN 'PASS' ELSE 'FAIL' END                        AS dq_status
-FROM ra_fy_2025.<segment>_<auid>_output;
-```
-
-#### 8.4.6 Reusable Helper (optional, for `_shared/`)
-
-To keep the threshold and logic identical across all notebooks, factor it into one shared function rather than copy-pasting the cell.
-
-```python
-# _shared/dq_utils.py
-DQ_THRESHOLD = 0.95
-
-def check_completeness(df, critical_fields, threshold=DQ_THRESHOLD):
-    total = df.count()
-    if total == 0:
-        return 0.0, 'FAIL'
-    complete = df.dropna(subset=critical_fields).count()
-    ratio = complete / total
-    return ratio, ('PASS' if ratio >= threshold else 'FAIL')
-
-def check_reconciliation(dev_count, ba_count, threshold=DQ_THRESHOLD):
-    if ba_count == 0:
-        return 1.0, 'FAIL'
-    variance = abs(dev_count - ba_count) / ba_count
-    return variance, ('PASS' if variance <= (1 - threshold) else 'FAIL')
+SELECT lob_id, lob_desc, cde_no, source, data_element, availability_pct
+FROM   RA_FY_2025.cde_da_by_lob_segment
+WHERE  CAST(availability_pct AS DOUBLE) < 95.0
+ORDER  BY availability_pct ASC;
 ```
 
 ### 8.5 What NOT to Commit
@@ -625,8 +603,8 @@ Before pushing to Git and updating the mastersheet:
 | No nested SELECTs | Query is flat — no unnecessary subqueries |
 | Only needed columns | `SELECT` lists only the columns the metric requires |
 | Partition filter first | `WHERE` clause starts with date / partition filter |
-| DQ check cell | Completeness % and reconciliation variance printed with explicit PASS/FAIL against the 95% threshold (see §8.4) |
-| DQ threshold gate | If completeness < 95% or reconciliation variance > 5%, output NOT written — routed to NOT AVAILABLE / risk acceptance |
+| DQ availability check | `availability_pct` computed (`100 * NNNBV / total`) and written to `cde_da_by_lob_segment` via `insertDQTable` (see §8.4) |
+| DQ threshold | `AVAILABILITY_PCT` ≥ 95 for each CDE; any CDE < 95 routed to NOT AVAILABLE / risk acceptance |
 | Output confirmed | CA AZ table write confirmed; record count matches expectation |
 | Mastersheet updated | Results in correct rows / columns of Excel mastersheet |
 | Reviewer sign-off | Independent reviewer has confirmed mastersheet entries |
