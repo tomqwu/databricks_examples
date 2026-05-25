@@ -261,6 +261,7 @@ EMP metrics using Cost Center or department-based AU attribution must normalize 
 - `DeptID` must remain string-based
 - numeric `DeptID` values normalize to canonical 4-digit strings
 - alphanumeric `DeptID` values must be preserved
+- ABAC and CoC compliance percentages count mapped in-range training rows; do not deduplicate by `FullName`
 
 #### EMP05
 
