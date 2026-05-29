@@ -7,7 +7,7 @@
 | Document Title | Git & Databricks Notebook Best Practices |
 | Document Owner | FCRM Enterprise Risk Assessment Reporting Team |
 | Effective Date | April 2026 |
-| Version | 2.7 (supersedes v2.6). §8.4 rewritten around the team's existing DQ availability pattern (`availability_pct = 100*NNNBV/total`, `insertDQTable`, `cde_da_by_lob_segment`) instead of generic examples; 95% threshold applied to `AVAILABILITY_PCT`. |
+| Version | 2.8 (supersedes v2.7). Added §8.4.0 Scope of Work — a two-paragraph statement describing inputs, processing, outputs, and the audit-trail handoff for the DQ check; mirrored in the Audit Summary. |
 | Target Audience | MCC Developers, Team Leads, 1LOD, 2LOD, Internal Audit |
 | Systems of Record | GitHub (`TD-Universe/RAFY2025_CA`) + Databricks + Jira (FY25 RA CYCLE - DATA) |
 
@@ -480,6 +480,12 @@ Add `.limit(1000)` during development. Remove before final run.
 
 Most metric notebooks already implement DQ through a shared **availability-percentage** pattern: each CDE / data element is measured for how many records carry a real (non-null, non-blank) value, and the percentage is written to a central DQ table. The 95% threshold applies directly to that `AVAILABILITY_PCT`. This is the team's existing convention — new notebooks should follow it, not reinvent it.
 
+#### 8.4.0 Scope of Work
+
+The DQ check measures the field-level availability of each Critical Data Element (CDE) used by a metric, expressing it as a percentage that gates whether the CDE can feed the Inherent Risk calculation for its Assessable Unit (AU). For each metric in scope, the developer identifies the controlling AU(s) and CDEs from the SOW and `Master_Data_source_FY2025_Segment.xlsx`, locates the source table (Rahona SRZ/CZ landed in CA AZ, or ADIDO), and selects the specific `data_element` field to be measured. In a Databricks notebook held in the centralized `RA_FY_2025` workspace location, a flat SELECT against the source view counts total records and **NNNBV** (Not Null, Not Blank Value) records for the cast `data_element` under the cycle's as-of filter, producing `availability_pct = round(100 * NNNBV / total, 2)`. The team's existing `insertDQTable(...)` helper then writes a single row to the central availability table `RA_FY_2025.cde_da_by_lob_segment`, recording LOB_ID, CDE_NO, SOURCE, SRC_TABLE_NAME, DATA_ELEMENT, AVAILABILITY_PCT and run date. The same percentage is transcribed into the static master sheet against the matching AU/metric/CDE row, and the 95% threshold is applied directly to AVAILABILITY_PCT — ≥ 95% passes and feeds Inherent Risk; < 95% routes the CDE to risk acceptance and the AU receives the higher (NOT AVAILABLE) rating rather than an artificially suppressed value.
+
+Each measurement is supported by four artifacts that together form the audit evidence: the notebook itself (with the standard header and `[LINEAGE]` cells, stored in Databricks and pushed to GitHub at PO APPROVED), the time-stamped row in `cde_da_by_lob_segment` that gives a per-cycle history of the measurement, the mastersheet entry with independent reviewer sign-off, and the Jira ticket transitioning through BUILD COMPLETE → PO CONCURRENCE → PO APPROVED. Any CDE below the 95% threshold triggers a RAID log entry and a BLOCKED Jira state until risk acceptance is formally recorded by the relevant stakeholders; only then does the AU move to NOT AVAILABLE for that metric. No mastersheet update is permitted without a preceding DQ measurement and its written-back AVAILABILITY_PCT.
+
 #### 8.4.1 How It Works
 
 1. For a given `data_element`, compute `availability_pct = round(100 * NNNBV / total, 2)`, where:
@@ -641,18 +647,3 @@ Items that the author was unable to confirm from the FY2025 workspace alone. Eac
 | Q1 | P1 | What is the purpose of `LOBs/` (top-level) versus `Analysis/[LOB]/`? They have overlapping but non-identical LOB lists. | Determines whether `LOBs/` is a reference tier, alternate transformation tier, or duplication. Drives Section 3 layout. |
 | Q3 | P2 | `SAS_DATA_LOAD` appears at two levels (top-level under `RiskAssessment` and inside `FY_2025`). Both active? Which is canonical? | Affects archive vs delete decision. |
 
-### 11.2 Connections & Dependencies
-
-| ID | Pri | Question | Why it matters |
-|---|---|---|---|
-| Q11 | P1 | Why does `Analysis/CBB/301069 Merchant Solution` call `/Users/priyanshi.chakraborty@td.com/GAML/GAMLConnections` instead of the shared `Configs/GAMLConnections`? Is there a functional difference, or is it leftover? | Determines whether user-folder GAML copies can be deleted or need to be merged into the shared version. |
-
-### 11.3 Daily Touchbase 2026-05-13 — Items to Reconcile
-
-The 2026-05-13 touchbase introduced proposals from the wider team that overlap with conventions already in this doc. Tom Wu's 13 May clarification resolves the per-AU transformation naming (see Section 3 and 7.1); other items still need confirmation before locking the new workspace design.
-
-| ID | Pri | Proposal from touchbase | Status |
-|---|---|---|---|
-| Q23 | P1 | **File naming standard:** `<AU_UNIT_ID>_<SEG_NAME>_<Notepad details>_<date>.py`. | **Partially resolved (Tom Wu, 13 May 2026).** `03_Transformations/Per_AU/` uses the simpler `<AU_code>.ipynb` (e.g. `301069.ipynb`). The longer `<AU>_<SEG>_<flow>_<date>.py` pattern applies to per-stage AU notebooks under `01_Source_Ingestion/`, `02_Views/`, and `05_Outputs/`. Confirm whether the two-pattern split is acceptable or whether one convention should win across all stages. |
-| Q24 | P2 | **Segment-based AU hierarchy:** `SEGMENT > AU > Notepad_<data_flow>`. | Currently implemented as `<LOB>/AU_<code>/` sub-grouping inside each lineage stage (see Section 3). Confirm SEGMENT vs LOB terminology — they appear interchangeable in the touchbase examples (`TDI`, `CBB`). |
-| Q25 | P2 | **AZ data layout:** within CA AZ, organise output tables as `Source to AZ > AU`, `Views > AU`, `Transformation > AU`, `Output > AU`. | This is about how output **tables in CA AZ** are organised, distinct from how **notebooks in Databricks** are organised. Confirm whether this AZ layout is a separate concern or whether it should mirror the Databricks folder structure. |
