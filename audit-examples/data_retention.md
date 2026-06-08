@@ -28,15 +28,15 @@ Same false claim, two versions. Correction below anchors to the **live (step 6)*
 > CA AZ datasets; organizational retention policies; Curated Data Zone (year-over-year RA data); Rahona SRZ.
 
 **Description / Activities** *(replaces the false statement)*
-> RA data retention is governed by external standards — this team references them, it does not set them. Curated Data Zone / CA AZ RA data follows the **CA AZ Privacy Impact Assessment (PIA)** retention standard (currently **5 years**); source-zone data follows the **Rahona SRZ Data Retention Policy**. On a defined cadence the assigned reviewer verifies that RA data in the Curated Data Zone is within the retention window, completes the retention check template, confirms completion by email, and files the evidence in SharePoint. Items approaching or exceeding the window are raised via RAID / Jira to the retention owner for a decision (remove / retain with justification / risk acceptance).
+> RA data retention is governed by external standards — this team references them, it does not set them. Curated Data Zone / CA AZ RA data follows **PIA-012176 — Canada GAML AZ — Risk Assessment data to be Loaded (v.7)**, which sets retention at **Active + 5 years** (rationale: per the Enterprise Retention schedule, **end of assessment + 5 years**; retention code **CRL-17-GLB**). Source-zone data follows the **Rahona SRZ Data Retention Policy**. On a defined cadence the assigned reviewer verifies that RA data in the Curated Data Zone is within the Active + 5 years retention period, completes the retention check template, confirms completion by email, and files the evidence in SharePoint. Items approaching or exceeding the period are raised via RAID / Jira to the retention owner for a decision (remove / retain with justification / risk acceptance).
 
 **Outputs / Evidence**
 > Data retention statement (PIA reference); completed retention check template; confirmation email filed in SharePoint; RAID / Jira entries for any flagged items.
 
 **Reference**
-> CA AZ PIA · Rahona SRZ Data Retention Policy · DaaS AZ retention standard *(Patty locating — add reference once shared)*.
+> **PIA-012176 — Canada GAML AZ (CAGAML00BI0001) — Risk Assessment data to be Loaded, v.7** *(verify asset-ID characters against source)* · Enterprise Retention schedule, retention code **CRL-17-GLB** · Rahona SRZ Data Retention Policy.
 
-> **Do not** restore any "no policy / no expiry set" language, and **do not** state a 10-year figure (discussed, never confirmed). The standard is 5 years per the PIA.
+> **Do not** restore any "no policy / no expiry set" language, and **do not** state a 10-year figure (discussed, never confirmed). The standard is **Active + 5 years** (end of assessment + 5 years) per PIA-012176 — not a flat 5 years from load.
 
 ---
 
@@ -50,13 +50,12 @@ Same false claim, two versions. Correction below anchors to the **live (step 6)*
 
 | Zone | Standard | Source |
 |---|---|---|
-| CA AZ / Curated Data Zone (RA data) | 5 years | Updated CA AZ PIA (confirmed) |
+| CA AZ / Curated Data Zone (RA data) | **Active + 5 years** (end of assessment + 5 years) | **PIA-012176 — Canada GAML AZ, v.7**; Enterprise Retention schedule, code **CRL-17-GLB** |
 | Rahona SRZ | per policy | Rahona SRZ Data Retention Policy |
-| DaaS AZ | AZ retention standard | DaaS AZ retention policy standard *(to be cited — Patty locating)* |
 
 **Procedure**
 
-1. On the defined cadence, the assigned reviewer confirms RA data in the Curated Data Zone is within the 5-year window and that nothing has aged past the standard without a decision.
+1. On the defined cadence, the assigned reviewer confirms RA data in the Curated Data Zone is within the **Active + 5 years** (end of assessment + 5 years) retention period and that nothing has aged past the standard without a decision.
 2. The reviewer completes the retention check template (below).
 3. The reviewer emails the completed template confirming the check was done.
 4. Template + email are filed in SharePoint.
@@ -70,14 +69,14 @@ Same false claim, two versions. Correction below anchors to the **live (step 6)*
 | Reviewer | |
 | Cycle / period covered | |
 | Zone checked | CA AZ / Curated Data Zone · Rahona SRZ |
-| Governing standard applied | 5-year (CA AZ PIA) / [DaaS AZ standard ref] |
+| Governing standard applied | Active + 5 years (PIA-012176; code CRL-17-GLB) |
+| End-of-assessment date used | |
 | Oldest RA data found (as-of date) | |
-| Within standard? | Yes / No |
+| Within standard (≤ end of assessment + 5 yrs)? | Yes / No |
 | Items flagged | |
 | Decision on flagged items | Remove / Retain w/ justification / Risk acceptance / N/A |
 | RAID / Jira ref | |
 | Confirmation email filed in SP at | |
 | Reviewer sign-off | |
 
-**Honesty note (internal — not for the SOP body).** No retention check has run historically and removal has never been facilitated. This section defines the go-forward procedure; do not present past check evidence that does not exist.
 
