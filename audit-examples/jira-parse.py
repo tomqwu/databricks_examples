@@ -1,17 +1,25 @@
 # =====================================================================
-# Python in Excel - v6 (FINAL)
+# Python in Excel - v7 (FINAL)
 # Replace the whole contents of the =PY( ) cell with everything below.
+#
+# Fix vs v6 (why some tickets came back empty):
+#   Some cells hold SEVERAL attachment entries run together on one
+#   line (previous entry's URL, then a space, then the next entry's
+#   date). v6 only read the first entry per line, so an xlsx sitting
+#   behind a .msg or .csv in the same cell was never seen. v7 regex-
+#   scans every cell for each "date;uploader;filename;" occurrence,
+#   so every entry is found regardless of how they're separated.
+#   Also: DAC-name preference now catches underscore style
+#   ("Data_Access_Framework_...").
 #
 # Current behaviour:
 #   - Reads the export from sheet "in", range A1:RC939.
 #   - Keeps ONLY tickets whose Reporter is one of: TAH1775, TAJ7583,
-#     TAM0124 (per Patty). Matching is case-insensitive and works
-#     whether the cell holds the bare ID or "Name (ID)" style.
-#   - Scans every Attachment column; only .xlsx files count.
-#   - Exactly ONE row per ticket: names signalling a DAC record
-#     (DAC / DAF / "Data Access") beat other xlsx, and within that
-#     the LATEST upload wins. Tickets with no xlsx get a blank
-#     Xls/Date row, so blanks = missing DAC record.
+#     TAM0124 (case-insensitive, bare ID or "Name (ID)" style).
+#   - Only .xlsx files count.
+#   - Exactly ONE row per ticket: DAC / DAF / Data Access-named files
+#     beat other xlsx; within that the LATEST upload wins. Tickets
+#     with no xlsx get a blank Xls/Date row (= missing DAC record).
 #   - Output: Issue key | Xls | Date | Custom field (MAL Code) |
 #     Custom field (Action) | Custom field (Additional Information) |
 #     Updated | Reporter
@@ -28,8 +36,12 @@ df = xl("in!A1:RC939", headers=True)   # <- export range
 KEEP = ["Issue key", "Custom field (MAL Code)", "Custom field (Action)",
         "Custom field (Additional Information)", "Updated", "Reporter"]
 REPORTERS = ["TAH1775", "TAJ7583", "TAM0124"]   # only these; empty list = keep all
-HIT    = re.compile(r"(?i)\.xlsx$")                                   # xlsx only
-PREFER = re.compile(r"(?i)(?<![a-z])(dac|daf)(?![a-z])|data access")  # DAC-record name hints
+HIT    = re.compile(r"(?i)\.xlsx$")                                       # xlsx only
+PREFER = re.compile(r"(?i)(?<![a-z])(dac|daf)(?![a-z])|data[ _]access")   # DAC-record name hints
+ENTRY  = re.compile(                                                      # one attachment entry:
+    r"(\d{1,2}/[A-Za-z]{3}/\d{2}"                                         #   date 17/Feb/26
+    r"(?:\s+\d{1,2}:\d{2}\s*[AP]M)?)"                                     #   optional time 9:40 AM
+    r"\s*;\s*([^;]*?)\s*;\s*([^;]*?)\s*;")                                #   ;uploader;filename;
 
 def norm(s):
     return re.sub(r"\s+", " ", str(s).replace("\u00a0", " ")).strip().casefold()
@@ -88,14 +100,11 @@ else:
             cell = r.iloc[i]
             if not isinstance(cell, str) or not cell.strip():
                 continue
-            for entry in cell.splitlines():
-                parts = entry.split(";", 3)           # date ; uploader ; filename ; url
-                if len(parts) < 3:
-                    continue
-                name = parts[2].strip()
+            for m in ENTRY.finditer(cell):
+                dstamp, name = m.group(1), m.group(3).strip()
                 if HIT.search(name):
-                    hits.append((bool(PREFER.search(name)), stamp(parts[0]),
-                                 parts[0].strip().split(" ")[0].replace("/", "-"),
+                    hits.append((bool(PREFER.search(name)), stamp(dstamp),
+                                 dstamp.strip().split(" ")[0].replace("/", "-"),
                                  name, len(hits)))
         if hits:
             best = max(hits, key=lambda h: (h[0], h[1], h[4]))
