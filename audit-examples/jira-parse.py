@@ -1,29 +1,31 @@
 # =====================================================================
-# Python in Excel - v9 (FINAL)
+# Python in Excel - v10 (FINAL)
 # Replace the whole contents of the =PY( ) cell with everything below.
 #
-# Change vs v8:
-#   - The Xls field now lists EVERY xlsx found for the ticket, newest
-#     first, one per line within the cell. The Date field lists the
-#     matching upload dates in the same order (line N of Date belongs
-#     to line N of Xls). Exact duplicates are removed. The single
-#     "best pick" logic is gone. Still one row per ticket; tickets
-#     with no xlsx anywhere stay blank.
+# Fix vs v9:
+#   The multiple xlsx WERE being captured, but the newline separator
+#   doesn't render in the grid, so names looked glued together
+#   ("...20241120.xlsxData Access Framework..."). Separator is now
+#   " | " - the pipe character cannot legally appear in a filename,
+#   so it's unambiguous. Date column uses the same separator and
+#   pairs by position: entry N in Xls belongs to entry N in Date.
 #
 # Current behaviour:
 #   - Reads the export from sheet "in", range A1:RC939.
 #   - Keeps ONLY tickets whose Reporter is one of: TAH1775, TAJ7583,
 #     TAM0124 (case-insensitive, bare ID or "Name (ID)" style).
 #   - Only .xlsx files count.
+#   - Xls lists EVERY xlsx found for the ticket, newest first,
+#     " | "-separated; Date lists the matching upload dates in the
+#     same order. Exact duplicates removed. One row per ticket;
+#     blank Xls/Date = no xlsx anywhere in the row.
 #   - Attachments are found by scanning EVERY cell in the row for the
-#     date;uploader;filename; pattern (handles the shifted rows from
-#     the second export layout and entries jammed together in one
-#     cell).
+#     date;uploader;filename; pattern (handles shifted rows and
+#     entries jammed together in one cell).
 #   - MAL Code / Action / Additional Information are taken from the
-#     header position only if the value looks right ("MAL Code:",
-#     "PII Data:", "Highest Security Classification..."); otherwise
-#     the row is scanned for a cell with that signature. Literal
-#     "None" is never carried through.
+#     header position only if the value looks right; otherwise the
+#     row is scanned for a cell with that signature. Literal "None"
+#     is never carried through.
 #   - Output: Issue key | Xls | Date | Custom field (MAL Code) |
 #     Custom field (Action) | Custom field (Additional Information) |
 #     Updated | Reporter
@@ -38,6 +40,7 @@ df = xl("in!A1:RC939", headers=True)   # <- export range
 KEEP = ["Issue key", "Custom field (MAL Code)", "Custom field (Action)",
         "Custom field (Additional Information)", "Updated", "Reporter"]
 REPORTERS = ["TAH1775", "TAJ7583", "TAM0124"]   # only these; empty list = keep all
+SEP   = " | "                                   # separator between multiple entries
 HIT   = re.compile(r"(?i)\.xlsx$")                                        # xlsx only
 ENTRY = re.compile(                                                       # one attachment entry:
     r"(\d{1,2}/[A-Za-z]{3}/\d{2}"                                         #   date 17/Feb/26
@@ -127,8 +130,8 @@ else:
                         hits.append((stamp(dstamp), date, name))
         hits.sort(key=lambda h: h[0], reverse=True)   # newest first
         rows.append([ik,
-                     "\n".join(h[2] for h in hits),
-                     "\n".join(h[1] for h in hits),
+                     SEP.join(h[2] for h in hits),
+                     SEP.join(h[1] for h in hits),
                      sig_value(r, "Custom field (MAL Code)"),
                      sig_value(r, "Custom field (Action)"),
                      sig_value(r, "Custom field (Additional Information)"),
