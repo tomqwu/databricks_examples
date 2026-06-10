@@ -1,31 +1,28 @@
 # =====================================================================
-# Python in Excel - v10 (FINAL)
+# Python in Excel - v13 (FINAL)
 # Replace the whole contents of the =PY( ) cell with everything below.
 #
-# Fix vs v9:
-#   The multiple xlsx WERE being captured, but the newline separator
-#   doesn't render in the grid, so names looked glued together
-#   ("...20241120.xlsxData Access Framework..."). Separator is now
-#   " | " - the pipe character cannot legally appear in a filename,
-#   so it's unambiguous. Date column uses the same separator and
-#   pairs by position: entry N in Xls belongs to entry N in Date.
+# Change vs v12:
+#   Back to ONE xlsx per ticket: the LATEST attached one by upload
+#   timestamp. The space/+ canonicalisation stays, so a file that
+#   appears in both forms counts once and the readable space variant
+#   is what gets shown.
 #
 # Current behaviour:
-#   - Reads the export from sheet "in", range A1:RC939.
+#   - Reads the export from sheet "in", range A1:ZZ1000
+#     (Ctrl+End on "in" gives the true bottom-right cell to use).
 #   - Keeps ONLY tickets whose Reporter is one of: TAH1775, TAJ7583,
 #     TAM0124 (case-insensitive, bare ID or "Name (ID)" style).
 #   - Only .xlsx files count.
-#   - Xls lists EVERY xlsx found for the ticket, newest first,
-#     " | "-separated; Date lists the matching upload dates in the
-#     same order. Exact duplicates removed. One row per ticket;
-#     blank Xls/Date = no xlsx anywhere in the row.
+#   - Xls = the latest xlsx attached to the ticket; Date = its upload
+#     date (dd-Mmm-yy). One row per ticket; blank Xls/Date = ticket
+#     has no xlsx anywhere in the row.
 #   - Attachments are found by scanning EVERY cell in the row for the
-#     date;uploader;filename; pattern (handles shifted rows and
-#     entries jammed together in one cell).
-#   - MAL Code / Action / Additional Information are taken from the
-#     header position only if the value looks right; otherwise the
-#     row is scanned for a cell with that signature. Literal "None"
-#     is never carried through.
+#     date;uploader;filename; pattern (shifted rows, jammed entries,
+#     AM/PM or 24-hour timestamps).
+#   - MAL Code / Action / Additional Information recovered by value
+#     signature when the header position doesn't look right; literal
+#     "None" never carried through.
 #   - Output: Issue key | Xls | Date | Custom field (MAL Code) |
 #     Custom field (Action) | Custom field (Additional Information) |
 #     Updated | Reporter
@@ -35,16 +32,15 @@ import pandas as pd
 import re
 from datetime import datetime
 
-df = xl("in!A1:RC939", headers=True)   # <- export range
+df = xl("in!A1:ZZ1000", headers=True)   # <- Ctrl+End on "in" gives the true bottom-right cell
 
 KEEP = ["Issue key", "Custom field (MAL Code)", "Custom field (Action)",
         "Custom field (Additional Information)", "Updated", "Reporter"]
 REPORTERS = ["TAH1775", "TAJ7583", "TAM0124"]   # only these; empty list = keep all
-SEP   = " | "                                   # separator between multiple entries
 HIT   = re.compile(r"(?i)\.xlsx$")                                        # xlsx only
 ENTRY = re.compile(                                                       # one attachment entry:
     r"(\d{1,2}/[A-Za-z]{3}/\d{2}"                                         #   date 17/Feb/26
-    r"(?:\s+\d{1,2}:\d{2}\s*[AP]M)?)"                                     #   optional time 9:40 AM
+    r"(?:\s+\d{1,2}:\d{2}(?::\d{2})?(?:\s*[AP]M)?)?)"                     #   time 9:40 AM / 13:53
     r"\s*;\s*([^;]*?)\s*;\s*([^;]*?)\s*;")                                #   ;uploader;filename;
 
 # value signatures used to recover shifted fields
@@ -63,12 +59,17 @@ def inner(s):
 
 def stamp(s):
     s = re.sub(r"\s+", " ", str(s).strip())
-    for f in ("%d/%b/%y %I:%M %p", "%d/%b/%y"):
+    for f in ("%d/%b/%y %I:%M %p", "%d/%b/%y %H:%M", "%d/%b/%y %H:%M:%S", "%d/%b/%y"):
         try:
             return datetime.strptime(s, f)
         except ValueError:
             pass
     return datetime.min
+
+def canon(name):
+    """Canonical filename: URL-encoded spaces (+ / %20) = real spaces, case-insensitive."""
+    s = name.replace("%20", " ").replace("+", " ")
+    return re.sub(r"\s+", " ", s).strip().casefold()
 
 cols = list(df.columns)
 ncols = [norm(c) for c in cols]
@@ -116,22 +117,26 @@ else:
         rep = norm(r.iloc[keep_idx["Reporter"]])
         if REPORTERS and not any(x.casefold() in rep for x in REPORTERS):
             continue                                  # not one of the 3 reporters
-        hits = []                                     # (dt, date_str, name)
-        seen = set()
+        hits = {}                                     # (canon, date) -> (dt, date, display_name)
         for v in r:                                   # scan EVERY cell, header-independent
             if not isinstance(v, str) or ";" not in v:
                 continue
             for m in ENTRY.finditer(v):
                 dstamp, name = m.group(1), m.group(3).strip()
-                if HIT.search(name):
-                    date = dstamp.strip().split(" ")[0].replace("/", "-")
-                    if (name, date) not in seen:
-                        seen.add((name, date))
-                        hits.append((stamp(dstamp), date, name))
-        hits.sort(key=lambda h: h[0], reverse=True)   # newest first
-        rows.append([ik,
-                     SEP.join(h[2] for h in hits),
-                     SEP.join(h[1] for h in hits),
+                if not HIT.search(name):
+                    continue
+                date = dstamp.strip().split(" ")[0].replace("/", "-")
+                key = (canon(name), date)
+                if key not in hits:
+                    hits[key] = (stamp(dstamp), date, name)
+                elif name.count("+") < hits[key][2].count("+"):
+                    hits[key] = (hits[key][0], date, name)   # prefer readable space variant
+        if hits:
+            latest = max(hits.values(), key=lambda h: (h[0], -h[2].count("+")))
+            name, date = latest[2], latest[1]
+        else:
+            name, date = "", ""
+        rows.append([ik, name, date,
                      sig_value(r, "Custom field (MAL Code)"),
                      sig_value(r, "Custom field (Action)"),
                      sig_value(r, "Custom field (Additional Information)"),
